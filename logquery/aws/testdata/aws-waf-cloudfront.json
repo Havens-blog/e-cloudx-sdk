@@ -1,0 +1,249 @@
+{
+  "meta": {
+    "cloud": "aws",
+    "log_type": "waf-cloudfront",
+    "desc": "AWS WAFv2 CLOUDFRONT scope (Firehose->S3 JSON)",
+    "bucket": "waf-loghub-clloggingbucket5f34e4eb-hjalewqix1db",
+    "key": "AWSLogs/414660254120/WAFLogs/cloudfront/CreatedByCloudFront-199190a1-8f09-45be-8ee4-535dfce76f0e/2025/08/24/03/aws-waf-logs-CL-s3-2e846b82-1-2025-08-24-03-23-37-ea93b98c-521d-425b-81f1-ef0bd4bec094.gz",
+    "format": "json-lines",
+    "object_time": "2025-08-24 03:28:40+00:00",
+    "pulled_at": 1787828210
+  },
+  "sample_count": 3,
+  "samples": [
+    {
+      "timestamp": 1756005799639,
+      "formatVersion": 1,
+      "webaclId": "arn:aws:wafv2:us-east-1:414660254120:global/webacl/CreatedByCloudFront-199190a1-8f09-45be-8ee4-535dfce76f0e/eb7f347a-d3e5-4b78-907b-b2481700bb0a",
+      "terminatingRuleId": "Default_Action",
+      "terminatingRuleType": "REGULAR",
+      "action": "ALLOW",
+      "terminatingRuleMatchDetails": [],
+      "httpSourceName": "CF",
+      "httpSourceId": "E2U51XYZHX0AP",
+      "ruleGroupList": [
+        {
+          "ruleGroupId": "AWS#AWSManagedRulesAmazonIpReputationList",
+          "terminatingRule": null,
+          "nonTerminatingMatchingRules": [],
+          "excludedRules": null,
+          "customerConfig": null
+        },
+        {
+          "ruleGroupId": "AWS#AWSManagedRulesCommonRuleSet",
+          "terminatingRule": null,
+          "nonTerminatingMatchingRules": [],
+          "excludedRules": null,
+          "customerConfig": null
+        },
+        {
+          "ruleGroupId": "AWS#AWSManagedRulesKnownBadInputsRuleSet",
+          "terminatingRule": null,
+          "nonTerminatingMatchingRules": [],
+          "excludedRules": null,
+          "customerConfig": null
+        }
+      ],
+      "rateBasedRuleList": [],
+      "nonTerminatingMatchingRules": [],
+      "requestHeadersInserted": null,
+      "responseCodeSent": null,
+      "httpRequest": {
+        "clientIp": "3.72.129.155",
+        "country": "DE",
+        "headers": [
+          {
+            "name": "host",
+            "value": "attachment.forface3d.net"
+          },
+          {
+            "name": "sw8",
+            "value": "1-YmY2YjE4ODQzMWVlNGRlYmFmMWIwYjAyNDkwNGJlYTEuMzA4LjE3NTYwMDU3OTk2MTIzOTM3-NDlkOTg2YjgzZGQ5NDE2NGFjMjAzOGZhODI3NTcyMGYuMzA1ODkuMTc1NjAwNTc5OTYxNTcxOTI=-6-b3ZlcnNlYXMtM2RwLW9yZGVyLXNlcnZpY2V8cHJvZC1vdmVyc2Vhc3w=-b3ZlcnNlYXMtM2RwLW9yZGVyLXNlcnZpY2UtNzQwLWJjN2Y1YzhmNC0ydGhwNw==-UE9TVDovb3ZlcnNlYXMzZHBPcmRlclNlcnZpY2UvZm9yZmFjZUNhbGxCYWNrL2NhbGxiYWNr-YXR0YWNobWVudC5mb3JmYWNlM2QubmV0OjQ0Mw=="
+          },
+          {
+            "name": "sw8-correlation",
+            "value": ""
+          },
+          {
+            "name": "sw8-x",
+            "value": "0-"
+          },
+          {
+            "name": "accept-encoding",
+            "value": "gzip"
+          },
+          {
+            "name": "user-agent",
+            "value": "okhttp/4.12.0"
+          }
+        ],
+        "uri": "/forfaceModelResourceOverseas/1959456457597108224.stl",
+        "args": "fileAccessId=8647797472960356352&fType=stl",
+        "httpVersion": "HTTP/2.0",
+        "httpMethod": "GET",
+        "requestId": "sveoU7GoTAUEnJhzmZ4rYLV5ctoO09ZTe0JNbH6YXhPAPa2iNKtJDA==",
+        "fragment": "",
+        "scheme": "https",
+        "host": "attachment.forface3d.net"
+      },
+      "ja3Fingerprint": "b765f4534bce3740f769b0254478e9bd",
+      "ja4Fingerprint": "t13d1515h2_8daaf6152771_4769d65a485e"
+    },
+    {
+      "timestamp": 1756005809960,
+      "formatVersion": 1,
+      "webaclId": "arn:aws:wafv2:us-east-1:414660254120:global/webacl/CreatedByCloudFront-199190a1-8f09-45be-8ee4-535dfce76f0e/eb7f347a-d3e5-4b78-907b-b2481700bb0a",
+      "terminatingRuleId": "Default_Action",
+      "terminatingRuleType": "REGULAR",
+      "action": "ALLOW",
+      "terminatingRuleMatchDetails": [],
+      "httpSourceName": "CF",
+      "httpSourceId": "E2U51XYZHX0AP",
+      "ruleGroupList": [
+        {
+          "ruleGroupId": "AWS#AWSManagedRulesAmazonIpReputationList",
+          "terminatingRule": null,
+          "nonTerminatingMatchingRules": [],
+          "excludedRules": null,
+          "customerConfig": null
+        },
+        {
+          "ruleGroupId": "AWS#AWSManagedRulesCommonRuleSet",
+          "terminatingRule": null,
+          "nonTerminatingMatchingRules": [],
+          "excludedRules": null,
+          "customerConfig": null
+        },
+        {
+          "ruleGroupId": "AWS#AWSManagedRulesKnownBadInputsRuleSet",
+          "terminatingRule": null,
+          "nonTerminatingMatchingRules": [],
+          "excludedRules": null,
+          "customerConfig": null
+        }
+      ],
+      "rateBasedRuleList": [],
+      "nonTerminatingMatchingRules": [],
+      "requestHeadersInserted": null,
+      "responseCodeSent": null,
+      "httpRequest": {
+        "clientIp": "3.72.129.155",
+        "country": "DE",
+        "headers": [
+          {
+            "name": "host",
+            "value": "attachment.forface3d.net"
+          },
+          {
+            "name": "sw8",
+            "value": "1-NGYwMGNjOWIyOGMxNGJiZWIyZDFiYWQ2MDhmOGQyNWYuNDYwLjE3NTYwMDU4MDk1MzkzODQz-NDlkOTg2YjgzZGQ5NDE2NGFjMjAzOGZhODI3NTcyMGYuMzA2MDQuMTc1NjAwNTgwOTU0MTY5NDI=-10-b3ZlcnNlYXMtM2RwLW9yZGVyLXNlcnZpY2V8cHJvZC1vdmVyc2Vhc3w=-b3ZlcnNlYXMtM2RwLW9yZGVyLXNlcnZpY2UtNzQwLWJjN2Y1YzhmNC0ydGhwNw==-UE9TVDovb3ZlcnNlYXMzZHBPcmRlclNlcnZpY2UvZm9yZmFjZUNhbGxCYWNrL2NhbGxiYWNr-YXR0YWNobWVudC5mb3JmYWNlM2QubmV0OjQ0Mw=="
+          },
+          {
+            "name": "sw8-correlation",
+            "value": ""
+          },
+          {
+            "name": "sw8-x",
+            "value": "0-"
+          },
+          {
+            "name": "accept-encoding",
+            "value": "gzip"
+          },
+          {
+            "name": "user-agent",
+            "value": "okhttp/4.12.0"
+          }
+        ],
+        "uri": "/forfaceModelResourceOverseas/1959456457597108224.stl",
+        "args": "fileAccessId=8647797472960356352&fType=stl",
+        "httpVersion": "HTTP/2.0",
+        "httpMethod": "GET",
+        "requestId": "EZWnjwyCQNkcsR8NdBMGeJ_cqH9kk92K3T7MRROInCJXsDbF-3OILQ==",
+        "fragment": "",
+        "scheme": "https",
+        "host": "attachment.forface3d.net"
+      },
+      "ja3Fingerprint": "b765f4534bce3740f769b0254478e9bd",
+      "ja4Fingerprint": "t13d1515h2_8daaf6152771_4769d65a485e"
+    },
+    {
+      "timestamp": 1756005801852,
+      "formatVersion": 1,
+      "webaclId": "arn:aws:wafv2:us-east-1:414660254120:global/webacl/CreatedByCloudFront-199190a1-8f09-45be-8ee4-535dfce76f0e/eb7f347a-d3e5-4b78-907b-b2481700bb0a",
+      "terminatingRuleId": "Default_Action",
+      "terminatingRuleType": "REGULAR",
+      "action": "ALLOW",
+      "terminatingRuleMatchDetails": [],
+      "httpSourceName": "CF",
+      "httpSourceId": "E2U51XYZHX0AP",
+      "ruleGroupList": [
+        {
+          "ruleGroupId": "AWS#AWSManagedRulesAmazonIpReputationList",
+          "terminatingRule": null,
+          "nonTerminatingMatchingRules": [],
+          "excludedRules": null,
+          "customerConfig": null
+        },
+        {
+          "ruleGroupId": "AWS#AWSManagedRulesCommonRuleSet",
+          "terminatingRule": null,
+          "nonTerminatingMatchingRules": [],
+          "excludedRules": null,
+          "customerConfig": null
+        },
+        {
+          "ruleGroupId": "AWS#AWSManagedRulesKnownBadInputsRuleSet",
+          "terminatingRule": null,
+          "nonTerminatingMatchingRules": [],
+          "excludedRules": null,
+          "customerConfig": null
+        }
+      ],
+      "rateBasedRuleList": [],
+      "nonTerminatingMatchingRules": [],
+      "requestHeadersInserted": null,
+      "responseCodeSent": null,
+      "httpRequest": {
+        "clientIp": "3.72.129.155",
+        "country": "DE",
+        "headers": [
+          {
+            "name": "host",
+            "value": "attachment.forface3d.net"
+          },
+          {
+            "name": "sw8",
+            "value": "1-NGYwMGNjOWIyOGMxNGJiZWIyZDFiYWQ2MDhmOGQyNWYuMTMyLjE3NTYwMDU4MDE4MjEzMjk5-NDlkOTg2YjgzZGQ5NDE2NGFjMjAzOGZhODI3NTcyMGYuMTc1LjE3NTYwMDU4MDE4MjMyODA2-7-b3ZlcnNlYXMtM2RwLW9yZGVyLXNlcnZpY2V8cHJvZC1vdmVyc2Vhc3w=-b3ZlcnNlYXMtM2RwLW9yZGVyLXNlcnZpY2UtNzQwLWJjN2Y1YzhmNC0ydGhwNw==-UE9TVDovb3ZlcnNlYXMzZHBPcmRlclNlcnZpY2UvZm9yZmFjZUNhbGxCYWNrL2NhbGxiYWNr-YXR0YWNobWVudC5mb3JmYWNlM2QubmV0OjQ0Mw=="
+          },
+          {
+            "name": "sw8-correlation",
+            "value": ""
+          },
+          {
+            "name": "sw8-x",
+            "value": "0-"
+          },
+          {
+            "name": "accept-encoding",
+            "value": "gzip"
+          },
+          {
+            "name": "user-agent",
+            "value": "okhttp/4.12.0"
+          }
+        ],
+        "uri": "/forfaceModelResourceOverseas/1756005801rvii/1.png",
+        "args": "fileAccessId=8647797482749861888",
+        "httpVersion": "HTTP/2.0",
+        "httpMethod": "GET",
+        "requestId": "8Zi3Dt4J8SVzkIvi9Ky-2Qq69dfz9B2qnoa_d-zPw7QepuxV2YeJ7w==",
+        "fragment": "",
+        "scheme": "https",
+        "host": "attachment.forface3d.net"
+      },
+      "ja3Fingerprint": "b765f4534bce3740f769b0254478e9bd",
+      "ja4Fingerprint": "t13d1515h2_8daaf6152771_4769d65a485e"
+    }
+  ]
+}

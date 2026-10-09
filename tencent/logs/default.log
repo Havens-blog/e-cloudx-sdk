@@ -1,0 +1,341 @@
+{"lv":"info","ts":1790751813,"msg":"获取腾讯云CDN证书引用成功","account":"tencent-main","count":3}
+{"lv":"info","ts":1790751813,"msg":"获取腾讯云CDN证书引用成功","account":"tencent-main","count":1}
+{"lv":"info","ts":1790751813,"msg":"获取腾讯云CDN证书引用成功","account":"tencent-main","count":0}
+{"lv":"info","ts":1790751813,"msg":"腾讯云CDN证书绑定成功","domain":"a.example.com","cloud_cert_id":"987654321"}
+{"lv":"info","ts":1790751813,"msg":"获取腾讯云CLB证书引用成功","account":"tencent-main","count":5}
+{"lv":"warn","ts":1790751813,"msg":"获取CLB监听器证书失败，跳过","load_balancer":"lb-1","error":"tencent clb api error: [TencentCloudSDKError] Code=AuthFailure, Message=鉴权失败, RequestId=req-denied"}
+{"lv":"warn","ts":1790751813,"msg":"获取CLB监听器证书失败，跳过","load_balancer":"lb-2","error":"tencent clb api error: [TencentCloudSDKError] Code=AuthFailure, Message=鉴权失败, RequestId=req-denied"}
+{"lv":"info","ts":1790751813,"msg":"获取腾讯云CLB证书引用成功","account":"tencent-main","count":0}
+{"lv":"info","ts":1790751813,"msg":"腾讯云CLB证书绑定成功","load_balancer":"lb-1","listener":"lbl-1","cloud_cert_id":"999"}
+{"lv":"info","ts":1790751813,"msg":"腾讯云CLB证书绑定成功","load_balancer":"lb-1","listener":"lbl-1","cloud_cert_id":"999"}
+{"lv":"info","ts":1790751813,"msg":"腾讯云CLB证书绑定成功","load_balancer":"lb-sh-1","listener":"lbl-sh-1","cloud_cert_id":"999"}
+{"lv":"info","ts":1790751813,"msg":"获取腾讯云EdgeOne证书引用成功","account":"tencent-main","count":4}
+{"lv":"info","ts":1790751813,"msg":"腾讯云EdgeOne证书绑定成功","zone":"zone-1","host":"www.a.com","cloud_cert_id":"999"}
+{"lv":"info","ts":1790751813,"msg":"腾讯云EdgeOne证书绑定成功","zone":"zone-1","host":"www.a.com","cloud_cert_id":"999"}
+{"lv":"info","ts":1790751813,"msg":"腾讯云证书上传成功","product":"cdn","cloud_cert_id":"987654321"}
+{"lv":"info","ts":1790751813,"msg":"腾讯云证书上传成功","product":"clb","cloud_cert_id":"111222333"}
+{"lv":"info","ts":1790751813,"msg":"腾讯云孤儿证书清理成功（同步删除）","cloud_cert_id":"987654321"}
+{"lv":"info","ts":1790751813,"msg":"腾讯云孤儿证书清理成功（同步删除）","cloud_cert_id":"987654321"}
+{"lv":"info","ts":1790751813,"msg":"腾讯云孤儿证书清理成功（异步任务完成）","cloud_cert_id":"987654321","task_id":"1001"}
+{"lv":"info","ts":1790751813,"msg":"腾讯云孤儿证书清理成功（异步任务完成）","cloud_cert_id":"987654321","task_id":"1005"}
+{"lv":"info","ts":1790751813,"msg":"腾讯云磁盘指标采集暂未启用(探测不支持,二期补)","disk_id":"disk-1","region":"ap-guangzhou","provider":"tencent","reason":"QCE/CBS 云盘 IO/使用率指标未注册且云监控数据查询权限未开通,指标名未收敛,见 disk-ops-insight probe-report §1.4"}
+{"lv":"info","ts":1790751813,"msg":"腾讯云磁盘指标采集暂未启用(探测不支持,二期补)","disk_id":"","region":"","provider":"tencent","reason":"QCE/CBS 云盘 IO/使用率指标未注册且云监控数据查询权限未开通,指标名未收敛,见 disk-ops-insight probe-report §1.4"}
+{"lv":"error","ts":1790751813,"msg":"腾讯云NAS指标查询失败","fs_id":"cfs-1","region":"ap-guangzhou","provider":"tencent","error":"获取腾讯云账号 APPID 失败: 响应为空"}
+{"lv":"error","ts":1790751813,"msg":"腾讯云NAS指标查询失败","fs_id":"cfs-1","region":"ap-guangzhou","provider":"tencent","error":"获取腾讯云账号 APPID 失败: cam unavailable"}
+{"lv":"error","ts":1790751813,"msg":"腾讯云OSS指标查询失败","bucket":"bkt","provider":"tencent","error":"查询OSS指标 StdStorage 失败: AuthFailure.SignatureFailure: auth failed"}
+{"lv":"error","ts":1790751813,"msg":"腾讯云OSS指标查询失败","bucket":"bkt","provider":"tencent","error":"client construction failed"}
+{"lv":"info","ts":1790751814,"msg":"获取腾讯云DNS域名列表成功","count":59}
+{"lv":"info","ts":1790752007,"msg":"获取腾讯云CDB实例列表成功","region":"ap-guangzhou","count":0}
+{"lv":"info","ts":1790752112,"msg":"获取腾讯云WAF防护资源列表成功","region":"ap-guangzhou","count":113}
+{"lv":"info","ts":1791454386,"msg":"获取腾讯云CDN证书引用成功","account":"tencent-main","count":3}
+{"lv":"info","ts":1791454386,"msg":"获取腾讯云CDN证书引用成功","account":"tencent-main","count":1}
+{"lv":"info","ts":1791454386,"msg":"获取腾讯云CDN证书引用成功","account":"tencent-main","count":0}
+{"lv":"info","ts":1791454386,"msg":"腾讯云CDN证书绑定成功","domain":"a.example.com","cloud_cert_id":"987654321"}
+{"lv":"info","ts":1791454386,"msg":"获取腾讯云CLB证书引用成功","account":"tencent-main","count":5}
+{"lv":"warn","ts":1791454386,"msg":"获取CLB监听器证书失败，跳过","load_balancer":"lb-1","error":"tencent clb api error: [TencentCloudSDKError] Code=AuthFailure, Message=鉴权失败, RequestId=req-denied"}
+{"lv":"warn","ts":1791454386,"msg":"获取CLB监听器证书失败，跳过","load_balancer":"lb-2","error":"tencent clb api error: [TencentCloudSDKError] Code=AuthFailure, Message=鉴权失败, RequestId=req-denied"}
+{"lv":"info","ts":1791454386,"msg":"获取腾讯云CLB证书引用成功","account":"tencent-main","count":0}
+{"lv":"info","ts":1791454386,"msg":"腾讯云CLB证书绑定成功","load_balancer":"lb-1","listener":"lbl-1","cloud_cert_id":"999"}
+{"lv":"info","ts":1791454386,"msg":"腾讯云CLB证书绑定成功","load_balancer":"lb-1","listener":"lbl-1","cloud_cert_id":"999"}
+{"lv":"info","ts":1791454386,"msg":"腾讯云CLB证书绑定成功","load_balancer":"lb-sh-1","listener":"lbl-sh-1","cloud_cert_id":"999"}
+{"lv":"info","ts":1791454386,"msg":"获取腾讯云EdgeOne证书引用成功","account":"tencent-main","count":4}
+{"lv":"info","ts":1791454386,"msg":"腾讯云EdgeOne证书绑定成功","zone":"zone-1","host":"www.a.com","cloud_cert_id":"999"}
+{"lv":"info","ts":1791454386,"msg":"腾讯云EdgeOne证书绑定成功","zone":"zone-1","host":"www.a.com","cloud_cert_id":"999"}
+{"lv":"info","ts":1791454386,"msg":"腾讯云证书上传成功","product":"cdn","cloud_cert_id":"987654321"}
+{"lv":"info","ts":1791454386,"msg":"腾讯云证书上传成功","product":"clb","cloud_cert_id":"111222333"}
+{"lv":"info","ts":1791454386,"msg":"腾讯云孤儿证书清理成功（同步删除）","cloud_cert_id":"987654321"}
+{"lv":"info","ts":1791454386,"msg":"腾讯云孤儿证书清理成功（同步删除）","cloud_cert_id":"987654321"}
+{"lv":"info","ts":1791454386,"msg":"腾讯云孤儿证书清理成功（异步任务完成）","cloud_cert_id":"987654321","task_id":"1001"}
+{"lv":"info","ts":1791454386,"msg":"腾讯云孤儿证书清理成功（异步任务完成）","cloud_cert_id":"987654321","task_id":"1005"}
+{"lv":"info","ts":1791454386,"msg":"腾讯云磁盘指标采集暂未启用(探测不支持,二期补)","disk_id":"disk-1","region":"ap-guangzhou","provider":"tencent","reason":"QCE/CBS 云盘 IO/使用率指标未注册且云监控数据查询权限未开通,指标名未收敛,见 disk-ops-insight probe-report §1.4"}
+{"lv":"info","ts":1791454386,"msg":"腾讯云磁盘指标采集暂未启用(探测不支持,二期补)","disk_id":"","region":"","provider":"tencent","reason":"QCE/CBS 云盘 IO/使用率指标未注册且云监控数据查询权限未开通,指标名未收敛,见 disk-ops-insight probe-report §1.4"}
+{"lv":"error","ts":1791454386,"msg":"腾讯云NAS指标查询失败","fs_id":"cfs-1","region":"ap-guangzhou","provider":"tencent","error":"获取腾讯云账号 APPID 失败: 响应为空"}
+{"lv":"error","ts":1791454386,"msg":"腾讯云NAS指标查询失败","fs_id":"cfs-1","region":"ap-guangzhou","provider":"tencent","error":"获取腾讯云账号 APPID 失败: cam unavailable"}
+{"lv":"error","ts":1791454386,"msg":"腾讯云OSS指标查询失败","bucket":"bkt","provider":"tencent","error":"查询OSS指标 StdStorage 失败: AuthFailure.SignatureFailure: auth failed"}
+{"lv":"error","ts":1791454386,"msg":"腾讯云OSS指标查询失败","bucket":"bkt","provider":"tencent","error":"client construction failed"}
+{"lv":"info","ts":1791533264,"msg":"获取腾讯云CDN证书引用成功","account":"tencent-main","count":3}
+{"lv":"info","ts":1791533264,"msg":"获取腾讯云CDN证书引用成功","account":"tencent-main","count":1}
+{"lv":"info","ts":1791533264,"msg":"获取腾讯云CDN证书引用成功","account":"tencent-main","count":0}
+{"lv":"info","ts":1791533264,"msg":"腾讯云CDN证书绑定成功","domain":"a.example.com","cloud_cert_id":"987654321"}
+{"lv":"info","ts":1791533264,"msg":"获取腾讯云CLB证书引用成功","account":"tencent-main","count":5}
+{"lv":"warn","ts":1791533264,"msg":"获取CLB监听器证书失败，跳过","load_balancer":"lb-1","error":"tencent clb api error: [TencentCloudSDKError] Code=AuthFailure, Message=鉴权失败, RequestId=req-denied"}
+{"lv":"warn","ts":1791533264,"msg":"获取CLB监听器证书失败，跳过","load_balancer":"lb-2","error":"tencent clb api error: [TencentCloudSDKError] Code=AuthFailure, Message=鉴权失败, RequestId=req-denied"}
+{"lv":"info","ts":1791533264,"msg":"获取腾讯云CLB证书引用成功","account":"tencent-main","count":0}
+{"lv":"info","ts":1791533264,"msg":"腾讯云CLB证书绑定成功","load_balancer":"lb-1","listener":"lbl-1","cloud_cert_id":"999"}
+{"lv":"info","ts":1791533264,"msg":"腾讯云CLB证书绑定成功","load_balancer":"lb-1","listener":"lbl-1","cloud_cert_id":"999"}
+{"lv":"info","ts":1791533264,"msg":"腾讯云CLB证书绑定成功","load_balancer":"lb-sh-1","listener":"lbl-sh-1","cloud_cert_id":"999"}
+{"lv":"info","ts":1791533264,"msg":"获取腾讯云EdgeOne证书引用成功","account":"tencent-main","count":4}
+{"lv":"info","ts":1791533264,"msg":"腾讯云EdgeOne证书绑定成功","zone":"zone-1","host":"www.a.com","cloud_cert_id":"999"}
+{"lv":"info","ts":1791533264,"msg":"腾讯云EdgeOne证书绑定成功","zone":"zone-1","host":"www.a.com","cloud_cert_id":"999"}
+{"lv":"info","ts":1791533264,"msg":"腾讯云证书上传成功","product":"cdn","cloud_cert_id":"987654321"}
+{"lv":"info","ts":1791533264,"msg":"腾讯云证书上传成功","product":"clb","cloud_cert_id":"111222333"}
+{"lv":"info","ts":1791533264,"msg":"腾讯云孤儿证书清理成功（同步删除）","cloud_cert_id":"987654321"}
+{"lv":"info","ts":1791533264,"msg":"腾讯云孤儿证书清理成功（同步删除）","cloud_cert_id":"987654321"}
+{"lv":"info","ts":1791533264,"msg":"腾讯云孤儿证书清理成功（异步任务完成）","cloud_cert_id":"987654321","task_id":"1001"}
+{"lv":"info","ts":1791533264,"msg":"腾讯云孤儿证书清理成功（异步任务完成）","cloud_cert_id":"987654321","task_id":"1005"}
+{"lv":"info","ts":1791533264,"msg":"腾讯云磁盘指标采集暂未启用(探测不支持,二期补)","disk_id":"disk-1","region":"ap-guangzhou","provider":"tencent","reason":"QCE/CBS 云盘 IO/使用率指标未注册且云监控数据查询权限未开通,指标名未收敛,见 disk-ops-insight probe-report §1.4"}
+{"lv":"info","ts":1791533264,"msg":"腾讯云磁盘指标采集暂未启用(探测不支持,二期补)","disk_id":"","region":"","provider":"tencent","reason":"QCE/CBS 云盘 IO/使用率指标未注册且云监控数据查询权限未开通,指标名未收敛,见 disk-ops-insight probe-report §1.4"}
+{"lv":"error","ts":1791533264,"msg":"腾讯云NAS指标查询失败","fs_id":"cfs-1","region":"ap-guangzhou","provider":"tencent","error":"获取腾讯云账号 APPID 失败: 响应为空"}
+{"lv":"error","ts":1791533264,"msg":"腾讯云NAS指标查询失败","fs_id":"cfs-1","region":"ap-guangzhou","provider":"tencent","error":"获取腾讯云账号 APPID 失败: cam unavailable"}
+{"lv":"error","ts":1791533264,"msg":"腾讯云OSS指标查询失败","bucket":"bkt","provider":"tencent","error":"查询OSS指标 StdStorage 失败: AuthFailure.SignatureFailure: auth failed"}
+{"lv":"error","ts":1791533264,"msg":"腾讯云OSS指标查询失败","bucket":"bkt","provider":"tencent","error":"client construction failed"}
+{"lv":"info","ts":1791533491,"msg":"获取腾讯云CDN证书引用成功","account":"tencent-main","count":3}
+{"lv":"info","ts":1791533491,"msg":"获取腾讯云CDN证书引用成功","account":"tencent-main","count":1}
+{"lv":"info","ts":1791533491,"msg":"获取腾讯云CDN证书引用成功","account":"tencent-main","count":0}
+{"lv":"info","ts":1791533491,"msg":"腾讯云CDN证书绑定成功","domain":"a.example.com","cloud_cert_id":"987654321"}
+{"lv":"info","ts":1791533491,"msg":"获取腾讯云CLB证书引用成功","account":"tencent-main","count":5}
+{"lv":"warn","ts":1791533491,"msg":"获取CLB监听器证书失败，跳过","load_balancer":"lb-1","error":"tencent clb api error: [TencentCloudSDKError] Code=AuthFailure, Message=鉴权失败, RequestId=req-denied"}
+{"lv":"warn","ts":1791533491,"msg":"获取CLB监听器证书失败，跳过","load_balancer":"lb-2","error":"tencent clb api error: [TencentCloudSDKError] Code=AuthFailure, Message=鉴权失败, RequestId=req-denied"}
+{"lv":"info","ts":1791533491,"msg":"获取腾讯云CLB证书引用成功","account":"tencent-main","count":0}
+{"lv":"info","ts":1791533491,"msg":"腾讯云CLB证书绑定成功","load_balancer":"lb-1","listener":"lbl-1","cloud_cert_id":"999"}
+{"lv":"info","ts":1791533491,"msg":"腾讯云CLB证书绑定成功","load_balancer":"lb-1","listener":"lbl-1","cloud_cert_id":"999"}
+{"lv":"info","ts":1791533491,"msg":"腾讯云CLB证书绑定成功","load_balancer":"lb-sh-1","listener":"lbl-sh-1","cloud_cert_id":"999"}
+{"lv":"info","ts":1791533491,"msg":"获取腾讯云EdgeOne证书引用成功","account":"tencent-main","count":4}
+{"lv":"info","ts":1791533491,"msg":"腾讯云EdgeOne证书绑定成功","zone":"zone-1","host":"www.a.com","cloud_cert_id":"999"}
+{"lv":"info","ts":1791533491,"msg":"腾讯云EdgeOne证书绑定成功","zone":"zone-1","host":"www.a.com","cloud_cert_id":"999"}
+{"lv":"info","ts":1791533491,"msg":"腾讯云证书上传成功","product":"cdn","cloud_cert_id":"987654321"}
+{"lv":"info","ts":1791533491,"msg":"腾讯云证书上传成功","product":"clb","cloud_cert_id":"111222333"}
+{"lv":"info","ts":1791533491,"msg":"腾讯云孤儿证书清理成功（同步删除）","cloud_cert_id":"987654321"}
+{"lv":"info","ts":1791533491,"msg":"腾讯云孤儿证书清理成功（同步删除）","cloud_cert_id":"987654321"}
+{"lv":"info","ts":1791533491,"msg":"腾讯云孤儿证书清理成功（异步任务完成）","cloud_cert_id":"987654321","task_id":"1001"}
+{"lv":"info","ts":1791533491,"msg":"腾讯云孤儿证书清理成功（异步任务完成）","cloud_cert_id":"987654321","task_id":"1005"}
+{"lv":"info","ts":1791533491,"msg":"腾讯云磁盘指标采集暂未启用(探测不支持,二期补)","disk_id":"disk-1","region":"ap-guangzhou","provider":"tencent","reason":"QCE/CBS 云盘 IO/使用率指标未注册且云监控数据查询权限未开通,指标名未收敛,见 disk-ops-insight probe-report §1.4"}
+{"lv":"info","ts":1791533491,"msg":"腾讯云磁盘指标采集暂未启用(探测不支持,二期补)","disk_id":"","region":"","provider":"tencent","reason":"QCE/CBS 云盘 IO/使用率指标未注册且云监控数据查询权限未开通,指标名未收敛,见 disk-ops-insight probe-report §1.4"}
+{"lv":"error","ts":1791533491,"msg":"腾讯云NAS指标查询失败","fs_id":"cfs-1","region":"ap-guangzhou","provider":"tencent","error":"获取腾讯云账号 APPID 失败: 响应为空"}
+{"lv":"error","ts":1791533491,"msg":"腾讯云NAS指标查询失败","fs_id":"cfs-1","region":"ap-guangzhou","provider":"tencent","error":"获取腾讯云账号 APPID 失败: cam unavailable"}
+{"lv":"error","ts":1791533491,"msg":"腾讯云OSS指标查询失败","bucket":"bkt","provider":"tencent","error":"查询OSS指标 StdStorage 失败: AuthFailure.SignatureFailure: auth failed"}
+{"lv":"error","ts":1791533491,"msg":"腾讯云OSS指标查询失败","bucket":"bkt","provider":"tencent","error":"client construction failed"}
+{"lv":"info","ts":1791533648,"msg":"获取腾讯云CDN证书引用成功","account":"tencent-main","count":3}
+{"lv":"info","ts":1791533648,"msg":"获取腾讯云CDN证书引用成功","account":"tencent-main","count":1}
+{"lv":"info","ts":1791533648,"msg":"获取腾讯云CDN证书引用成功","account":"tencent-main","count":0}
+{"lv":"info","ts":1791533648,"msg":"腾讯云CDN证书绑定成功","domain":"a.example.com","cloud_cert_id":"987654321"}
+{"lv":"info","ts":1791533648,"msg":"获取腾讯云CLB证书引用成功","account":"tencent-main","count":5}
+{"lv":"warn","ts":1791533648,"msg":"获取CLB监听器证书失败，跳过","load_balancer":"lb-1","error":"tencent clb api error: [TencentCloudSDKError] Code=AuthFailure, Message=鉴权失败, RequestId=req-denied"}
+{"lv":"warn","ts":1791533648,"msg":"获取CLB监听器证书失败，跳过","load_balancer":"lb-2","error":"tencent clb api error: [TencentCloudSDKError] Code=AuthFailure, Message=鉴权失败, RequestId=req-denied"}
+{"lv":"info","ts":1791533648,"msg":"获取腾讯云CLB证书引用成功","account":"tencent-main","count":0}
+{"lv":"info","ts":1791533648,"msg":"腾讯云CLB证书绑定成功","load_balancer":"lb-1","listener":"lbl-1","cloud_cert_id":"999"}
+{"lv":"info","ts":1791533648,"msg":"腾讯云CLB证书绑定成功","load_balancer":"lb-1","listener":"lbl-1","cloud_cert_id":"999"}
+{"lv":"info","ts":1791533648,"msg":"腾讯云CLB证书绑定成功","load_balancer":"lb-sh-1","listener":"lbl-sh-1","cloud_cert_id":"999"}
+{"lv":"info","ts":1791533648,"msg":"获取腾讯云EdgeOne证书引用成功","account":"tencent-main","count":4}
+{"lv":"info","ts":1791533648,"msg":"腾讯云EdgeOne证书绑定成功","zone":"zone-1","host":"www.a.com","cloud_cert_id":"999"}
+{"lv":"info","ts":1791533648,"msg":"腾讯云EdgeOne证书绑定成功","zone":"zone-1","host":"www.a.com","cloud_cert_id":"999"}
+{"lv":"info","ts":1791533648,"msg":"腾讯云证书上传成功","product":"cdn","cloud_cert_id":"987654321"}
+{"lv":"info","ts":1791533648,"msg":"腾讯云证书上传成功","product":"clb","cloud_cert_id":"111222333"}
+{"lv":"info","ts":1791533648,"msg":"腾讯云孤儿证书清理成功（同步删除）","cloud_cert_id":"987654321"}
+{"lv":"info","ts":1791533648,"msg":"腾讯云孤儿证书清理成功（同步删除）","cloud_cert_id":"987654321"}
+{"lv":"info","ts":1791533648,"msg":"腾讯云孤儿证书清理成功（异步任务完成）","cloud_cert_id":"987654321","task_id":"1001"}
+{"lv":"info","ts":1791533648,"msg":"腾讯云孤儿证书清理成功（异步任务完成）","cloud_cert_id":"987654321","task_id":"1005"}
+{"lv":"info","ts":1791533648,"msg":"腾讯云磁盘指标采集暂未启用(探测不支持,二期补)","disk_id":"disk-1","region":"ap-guangzhou","provider":"tencent","reason":"QCE/CBS 云盘 IO/使用率指标未注册且云监控数据查询权限未开通,指标名未收敛,见 disk-ops-insight probe-report §1.4"}
+{"lv":"info","ts":1791533648,"msg":"腾讯云磁盘指标采集暂未启用(探测不支持,二期补)","disk_id":"","region":"","provider":"tencent","reason":"QCE/CBS 云盘 IO/使用率指标未注册且云监控数据查询权限未开通,指标名未收敛,见 disk-ops-insight probe-report §1.4"}
+{"lv":"error","ts":1791533648,"msg":"腾讯云NAS指标查询失败","fs_id":"cfs-1","region":"ap-guangzhou","provider":"tencent","error":"获取腾讯云账号 APPID 失败: 响应为空"}
+{"lv":"error","ts":1791533648,"msg":"腾讯云NAS指标查询失败","fs_id":"cfs-1","region":"ap-guangzhou","provider":"tencent","error":"获取腾讯云账号 APPID 失败: cam unavailable"}
+{"lv":"error","ts":1791533648,"msg":"腾讯云OSS指标查询失败","bucket":"bkt","provider":"tencent","error":"查询OSS指标 StdStorage 失败: AuthFailure.SignatureFailure: auth failed"}
+{"lv":"error","ts":1791533648,"msg":"腾讯云OSS指标查询失败","bucket":"bkt","provider":"tencent","error":"client construction failed"}
+{"lv":"info","ts":1791533652,"msg":"获取腾讯云CDN证书引用成功","account":"tencent-main","count":3}
+{"lv":"info","ts":1791533652,"msg":"获取腾讯云CDN证书引用成功","account":"tencent-main","count":1}
+{"lv":"info","ts":1791533652,"msg":"获取腾讯云CDN证书引用成功","account":"tencent-main","count":0}
+{"lv":"info","ts":1791533652,"msg":"腾讯云CDN证书绑定成功","domain":"a.example.com","cloud_cert_id":"987654321"}
+{"lv":"info","ts":1791533652,"msg":"获取腾讯云CLB证书引用成功","account":"tencent-main","count":5}
+{"lv":"warn","ts":1791533652,"msg":"获取CLB监听器证书失败，跳过","load_balancer":"lb-1","error":"tencent clb api error: [TencentCloudSDKError] Code=AuthFailure, Message=鉴权失败, RequestId=req-denied"}
+{"lv":"warn","ts":1791533652,"msg":"获取CLB监听器证书失败，跳过","load_balancer":"lb-2","error":"tencent clb api error: [TencentCloudSDKError] Code=AuthFailure, Message=鉴权失败, RequestId=req-denied"}
+{"lv":"info","ts":1791533652,"msg":"获取腾讯云CLB证书引用成功","account":"tencent-main","count":0}
+{"lv":"info","ts":1791533652,"msg":"腾讯云CLB证书绑定成功","load_balancer":"lb-1","listener":"lbl-1","cloud_cert_id":"999"}
+{"lv":"info","ts":1791533652,"msg":"腾讯云CLB证书绑定成功","load_balancer":"lb-1","listener":"lbl-1","cloud_cert_id":"999"}
+{"lv":"info","ts":1791533652,"msg":"腾讯云CLB证书绑定成功","load_balancer":"lb-sh-1","listener":"lbl-sh-1","cloud_cert_id":"999"}
+{"lv":"info","ts":1791533652,"msg":"获取腾讯云EdgeOne证书引用成功","account":"tencent-main","count":4}
+{"lv":"info","ts":1791533652,"msg":"腾讯云EdgeOne证书绑定成功","zone":"zone-1","host":"www.a.com","cloud_cert_id":"999"}
+{"lv":"info","ts":1791533652,"msg":"腾讯云EdgeOne证书绑定成功","zone":"zone-1","host":"www.a.com","cloud_cert_id":"999"}
+{"lv":"info","ts":1791533652,"msg":"腾讯云证书上传成功","product":"cdn","cloud_cert_id":"987654321"}
+{"lv":"info","ts":1791533652,"msg":"腾讯云证书上传成功","product":"clb","cloud_cert_id":"111222333"}
+{"lv":"info","ts":1791533652,"msg":"腾讯云孤儿证书清理成功（同步删除）","cloud_cert_id":"987654321"}
+{"lv":"info","ts":1791533652,"msg":"腾讯云孤儿证书清理成功（同步删除）","cloud_cert_id":"987654321"}
+{"lv":"info","ts":1791533652,"msg":"腾讯云孤儿证书清理成功（异步任务完成）","cloud_cert_id":"987654321","task_id":"1001"}
+{"lv":"info","ts":1791533652,"msg":"腾讯云孤儿证书清理成功（异步任务完成）","cloud_cert_id":"987654321","task_id":"1005"}
+{"lv":"info","ts":1791533652,"msg":"腾讯云磁盘指标采集暂未启用(探测不支持,二期补)","disk_id":"disk-1","region":"ap-guangzhou","provider":"tencent","reason":"QCE/CBS 云盘 IO/使用率指标未注册且云监控数据查询权限未开通,指标名未收敛,见 disk-ops-insight probe-report §1.4"}
+{"lv":"info","ts":1791533652,"msg":"腾讯云磁盘指标采集暂未启用(探测不支持,二期补)","disk_id":"","region":"","provider":"tencent","reason":"QCE/CBS 云盘 IO/使用率指标未注册且云监控数据查询权限未开通,指标名未收敛,见 disk-ops-insight probe-report §1.4"}
+{"lv":"error","ts":1791533652,"msg":"腾讯云NAS指标查询失败","fs_id":"cfs-1","region":"ap-guangzhou","provider":"tencent","error":"获取腾讯云账号 APPID 失败: 响应为空"}
+{"lv":"error","ts":1791533652,"msg":"腾讯云NAS指标查询失败","fs_id":"cfs-1","region":"ap-guangzhou","provider":"tencent","error":"获取腾讯云账号 APPID 失败: cam unavailable"}
+{"lv":"error","ts":1791533652,"msg":"腾讯云OSS指标查询失败","bucket":"bkt","provider":"tencent","error":"查询OSS指标 StdStorage 失败: AuthFailure.SignatureFailure: auth failed"}
+{"lv":"error","ts":1791533652,"msg":"腾讯云OSS指标查询失败","bucket":"bkt","provider":"tencent","error":"client construction failed"}
+{"lv":"info","ts":1791534182,"msg":"获取腾讯云CDN证书引用成功","account":"tencent-main","count":3}
+{"lv":"info","ts":1791534182,"msg":"获取腾讯云CDN证书引用成功","account":"tencent-main","count":1}
+{"lv":"info","ts":1791534182,"msg":"获取腾讯云CDN证书引用成功","account":"tencent-main","count":0}
+{"lv":"info","ts":1791534182,"msg":"腾讯云CDN证书绑定成功","domain":"a.example.com","cloud_cert_id":"987654321"}
+{"lv":"info","ts":1791534182,"msg":"获取腾讯云CLB证书引用成功","account":"tencent-main","count":5}
+{"lv":"warn","ts":1791534182,"msg":"获取CLB监听器证书失败，跳过","load_balancer":"lb-1","error":"tencent clb api error: [TencentCloudSDKError] Code=AuthFailure, Message=鉴权失败, RequestId=req-denied"}
+{"lv":"warn","ts":1791534182,"msg":"获取CLB监听器证书失败，跳过","load_balancer":"lb-2","error":"tencent clb api error: [TencentCloudSDKError] Code=AuthFailure, Message=鉴权失败, RequestId=req-denied"}
+{"lv":"info","ts":1791534182,"msg":"获取腾讯云CLB证书引用成功","account":"tencent-main","count":0}
+{"lv":"info","ts":1791534182,"msg":"腾讯云CLB证书绑定成功","load_balancer":"lb-1","listener":"lbl-1","cloud_cert_id":"999"}
+{"lv":"info","ts":1791534182,"msg":"腾讯云CLB证书绑定成功","load_balancer":"lb-1","listener":"lbl-1","cloud_cert_id":"999"}
+{"lv":"info","ts":1791534182,"msg":"腾讯云CLB证书绑定成功","load_balancer":"lb-sh-1","listener":"lbl-sh-1","cloud_cert_id":"999"}
+{"lv":"info","ts":1791534182,"msg":"获取腾讯云EdgeOne证书引用成功","account":"tencent-main","count":4}
+{"lv":"info","ts":1791534182,"msg":"腾讯云EdgeOne证书绑定成功","zone":"zone-1","host":"www.a.com","cloud_cert_id":"999"}
+{"lv":"info","ts":1791534182,"msg":"腾讯云EdgeOne证书绑定成功","zone":"zone-1","host":"www.a.com","cloud_cert_id":"999"}
+{"lv":"info","ts":1791534182,"msg":"腾讯云证书上传成功","product":"cdn","cloud_cert_id":"987654321"}
+{"lv":"info","ts":1791534182,"msg":"腾讯云证书上传成功","product":"clb","cloud_cert_id":"111222333"}
+{"lv":"info","ts":1791534182,"msg":"腾讯云孤儿证书清理成功（同步删除）","cloud_cert_id":"987654321"}
+{"lv":"info","ts":1791534182,"msg":"腾讯云孤儿证书清理成功（同步删除）","cloud_cert_id":"987654321"}
+{"lv":"info","ts":1791534182,"msg":"腾讯云孤儿证书清理成功（异步任务完成）","cloud_cert_id":"987654321","task_id":"1001"}
+{"lv":"info","ts":1791534182,"msg":"腾讯云孤儿证书清理成功（异步任务完成）","cloud_cert_id":"987654321","task_id":"1005"}
+{"lv":"info","ts":1791534182,"msg":"腾讯云磁盘指标采集暂未启用(探测不支持,二期补)","disk_id":"disk-1","region":"ap-guangzhou","provider":"tencent","reason":"QCE/CBS 云盘 IO/使用率指标未注册且云监控数据查询权限未开通,指标名未收敛,见 disk-ops-insight probe-report §1.4"}
+{"lv":"info","ts":1791534182,"msg":"腾讯云磁盘指标采集暂未启用(探测不支持,二期补)","disk_id":"","region":"","provider":"tencent","reason":"QCE/CBS 云盘 IO/使用率指标未注册且云监控数据查询权限未开通,指标名未收敛,见 disk-ops-insight probe-report §1.4"}
+{"lv":"error","ts":1791534182,"msg":"腾讯云NAS指标查询失败","fs_id":"cfs-1","region":"ap-guangzhou","provider":"tencent","error":"获取腾讯云账号 APPID 失败: 响应为空"}
+{"lv":"error","ts":1791534182,"msg":"腾讯云NAS指标查询失败","fs_id":"cfs-1","region":"ap-guangzhou","provider":"tencent","error":"获取腾讯云账号 APPID 失败: cam unavailable"}
+{"lv":"error","ts":1791534182,"msg":"腾讯云OSS指标查询失败","bucket":"bkt","provider":"tencent","error":"查询OSS指标 StdStorage 失败: AuthFailure.SignatureFailure: auth failed"}
+{"lv":"error","ts":1791534182,"msg":"腾讯云OSS指标查询失败","bucket":"bkt","provider":"tencent","error":"client construction failed"}
+{"lv":"info","ts":1791537515,"msg":"获取腾讯云CDN证书引用成功","account":"tencent-main","count":3}
+{"lv":"info","ts":1791537515,"msg":"获取腾讯云CDN证书引用成功","account":"tencent-main","count":1}
+{"lv":"info","ts":1791537515,"msg":"获取腾讯云CDN证书引用成功","account":"tencent-main","count":0}
+{"lv":"info","ts":1791537515,"msg":"腾讯云CDN证书绑定成功","domain":"a.example.com","cloud_cert_id":"987654321"}
+{"lv":"info","ts":1791537515,"msg":"获取腾讯云CLB证书引用成功","account":"tencent-main","count":5}
+{"lv":"warn","ts":1791537515,"msg":"获取CLB监听器证书失败，跳过","load_balancer":"lb-1","error":"tencent clb api error: [TencentCloudSDKError] Code=AuthFailure, Message=鉴权失败, RequestId=req-denied"}
+{"lv":"warn","ts":1791537515,"msg":"获取CLB监听器证书失败，跳过","load_balancer":"lb-2","error":"tencent clb api error: [TencentCloudSDKError] Code=AuthFailure, Message=鉴权失败, RequestId=req-denied"}
+{"lv":"info","ts":1791537515,"msg":"获取腾讯云CLB证书引用成功","account":"tencent-main","count":0}
+{"lv":"info","ts":1791537515,"msg":"腾讯云CLB证书绑定成功","load_balancer":"lb-1","listener":"lbl-1","cloud_cert_id":"999"}
+{"lv":"info","ts":1791537515,"msg":"腾讯云CLB证书绑定成功","load_balancer":"lb-1","listener":"lbl-1","cloud_cert_id":"999"}
+{"lv":"info","ts":1791537515,"msg":"腾讯云CLB证书绑定成功","load_balancer":"lb-sh-1","listener":"lbl-sh-1","cloud_cert_id":"999"}
+{"lv":"info","ts":1791537515,"msg":"获取腾讯云EdgeOne证书引用成功","account":"tencent-main","count":4}
+{"lv":"info","ts":1791537515,"msg":"腾讯云EdgeOne证书绑定成功","zone":"zone-1","host":"www.a.com","cloud_cert_id":"999"}
+{"lv":"info","ts":1791537515,"msg":"腾讯云EdgeOne证书绑定成功","zone":"zone-1","host":"www.a.com","cloud_cert_id":"999"}
+{"lv":"info","ts":1791537515,"msg":"腾讯云证书上传成功","product":"cdn","cloud_cert_id":"987654321"}
+{"lv":"info","ts":1791537515,"msg":"腾讯云证书上传成功","product":"clb","cloud_cert_id":"111222333"}
+{"lv":"info","ts":1791537515,"msg":"腾讯云孤儿证书清理成功（同步删除）","cloud_cert_id":"987654321"}
+{"lv":"info","ts":1791537515,"msg":"腾讯云孤儿证书清理成功（同步删除）","cloud_cert_id":"987654321"}
+{"lv":"info","ts":1791537515,"msg":"腾讯云孤儿证书清理成功（异步任务完成）","cloud_cert_id":"987654321","task_id":"1001"}
+{"lv":"info","ts":1791537515,"msg":"腾讯云孤儿证书清理成功（异步任务完成）","cloud_cert_id":"987654321","task_id":"1005"}
+{"lv":"info","ts":1791537515,"msg":"腾讯云磁盘指标采集暂未启用(探测不支持,二期补)","disk_id":"disk-1","region":"ap-guangzhou","provider":"tencent","reason":"QCE/CBS 云盘 IO/使用率指标未注册且云监控数据查询权限未开通,指标名未收敛,见 disk-ops-insight probe-report §1.4"}
+{"lv":"info","ts":1791537515,"msg":"腾讯云磁盘指标采集暂未启用(探测不支持,二期补)","disk_id":"","region":"","provider":"tencent","reason":"QCE/CBS 云盘 IO/使用率指标未注册且云监控数据查询权限未开通,指标名未收敛,见 disk-ops-insight probe-report §1.4"}
+{"lv":"error","ts":1791537515,"msg":"腾讯云NAS指标查询失败","fs_id":"cfs-1","region":"ap-guangzhou","provider":"tencent","error":"获取腾讯云账号 APPID 失败: 响应为空"}
+{"lv":"error","ts":1791537515,"msg":"腾讯云NAS指标查询失败","fs_id":"cfs-1","region":"ap-guangzhou","provider":"tencent","error":"获取腾讯云账号 APPID 失败: cam unavailable"}
+{"lv":"error","ts":1791537515,"msg":"腾讯云OSS指标查询失败","bucket":"bkt","provider":"tencent","error":"查询OSS指标 StdStorage 失败: AuthFailure.SignatureFailure: auth failed"}
+{"lv":"error","ts":1791537515,"msg":"腾讯云OSS指标查询失败","bucket":"bkt","provider":"tencent","error":"client construction failed"}
+{"lv":"info","ts":1791537754,"msg":"获取腾讯云CDN证书引用成功","account":"tencent-main","count":3}
+{"lv":"info","ts":1791537754,"msg":"获取腾讯云CDN证书引用成功","account":"tencent-main","count":1}
+{"lv":"info","ts":1791537754,"msg":"获取腾讯云CDN证书引用成功","account":"tencent-main","count":0}
+{"lv":"info","ts":1791537754,"msg":"腾讯云CDN证书绑定成功","domain":"a.example.com","cloud_cert_id":"987654321"}
+{"lv":"info","ts":1791537754,"msg":"获取腾讯云CLB证书引用成功","account":"tencent-main","count":5}
+{"lv":"warn","ts":1791537754,"msg":"获取CLB监听器证书失败，跳过","load_balancer":"lb-1","error":"tencent clb api error: [TencentCloudSDKError] Code=AuthFailure, Message=鉴权失败, RequestId=req-denied"}
+{"lv":"warn","ts":1791537754,"msg":"获取CLB监听器证书失败，跳过","load_balancer":"lb-2","error":"tencent clb api error: [TencentCloudSDKError] Code=AuthFailure, Message=鉴权失败, RequestId=req-denied"}
+{"lv":"info","ts":1791537754,"msg":"获取腾讯云CLB证书引用成功","account":"tencent-main","count":0}
+{"lv":"info","ts":1791537754,"msg":"腾讯云CLB证书绑定成功","load_balancer":"lb-1","listener":"lbl-1","cloud_cert_id":"999"}
+{"lv":"info","ts":1791537754,"msg":"腾讯云CLB证书绑定成功","load_balancer":"lb-1","listener":"lbl-1","cloud_cert_id":"999"}
+{"lv":"info","ts":1791537754,"msg":"腾讯云CLB证书绑定成功","load_balancer":"lb-sh-1","listener":"lbl-sh-1","cloud_cert_id":"999"}
+{"lv":"info","ts":1791537754,"msg":"获取腾讯云EdgeOne证书引用成功","account":"tencent-main","count":4}
+{"lv":"info","ts":1791537754,"msg":"腾讯云EdgeOne证书绑定成功","zone":"zone-1","host":"www.a.com","cloud_cert_id":"999"}
+{"lv":"info","ts":1791537754,"msg":"腾讯云EdgeOne证书绑定成功","zone":"zone-1","host":"www.a.com","cloud_cert_id":"999"}
+{"lv":"info","ts":1791537754,"msg":"腾讯云证书上传成功","product":"cdn","cloud_cert_id":"987654321"}
+{"lv":"info","ts":1791537754,"msg":"腾讯云证书上传成功","product":"clb","cloud_cert_id":"111222333"}
+{"lv":"info","ts":1791537754,"msg":"腾讯云孤儿证书清理成功（同步删除）","cloud_cert_id":"987654321"}
+{"lv":"info","ts":1791537754,"msg":"腾讯云孤儿证书清理成功（同步删除）","cloud_cert_id":"987654321"}
+{"lv":"info","ts":1791537754,"msg":"腾讯云孤儿证书清理成功（异步任务完成）","cloud_cert_id":"987654321","task_id":"1001"}
+{"lv":"info","ts":1791537754,"msg":"腾讯云孤儿证书清理成功（异步任务完成）","cloud_cert_id":"987654321","task_id":"1005"}
+{"lv":"info","ts":1791537754,"msg":"腾讯云磁盘指标采集暂未启用(探测不支持,二期补)","disk_id":"disk-1","region":"ap-guangzhou","provider":"tencent","reason":"QCE/CBS 云盘 IO/使用率指标未注册且云监控数据查询权限未开通,指标名未收敛,见 disk-ops-insight probe-report §1.4"}
+{"lv":"info","ts":1791537754,"msg":"腾讯云磁盘指标采集暂未启用(探测不支持,二期补)","disk_id":"","region":"","provider":"tencent","reason":"QCE/CBS 云盘 IO/使用率指标未注册且云监控数据查询权限未开通,指标名未收敛,见 disk-ops-insight probe-report §1.4"}
+{"lv":"error","ts":1791537754,"msg":"腾讯云NAS指标查询失败","fs_id":"cfs-1","region":"ap-guangzhou","provider":"tencent","error":"获取腾讯云账号 APPID 失败: 响应为空"}
+{"lv":"error","ts":1791537754,"msg":"腾讯云NAS指标查询失败","fs_id":"cfs-1","region":"ap-guangzhou","provider":"tencent","error":"获取腾讯云账号 APPID 失败: cam unavailable"}
+{"lv":"error","ts":1791537754,"msg":"腾讯云OSS指标查询失败","bucket":"bkt","provider":"tencent","error":"查询OSS指标 StdStorage 失败: AuthFailure.SignatureFailure: auth failed"}
+{"lv":"error","ts":1791537754,"msg":"腾讯云OSS指标查询失败","bucket":"bkt","provider":"tencent","error":"client construction failed"}
+{"lv":"info","ts":1791537959,"msg":"获取腾讯云CDN证书引用成功","account":"tencent-main","count":3}
+{"lv":"info","ts":1791537959,"msg":"获取腾讯云CDN证书引用成功","account":"tencent-main","count":1}
+{"lv":"info","ts":1791537959,"msg":"获取腾讯云CDN证书引用成功","account":"tencent-main","count":0}
+{"lv":"info","ts":1791537959,"msg":"腾讯云CDN证书绑定成功","domain":"a.example.com","cloud_cert_id":"987654321"}
+{"lv":"info","ts":1791537959,"msg":"获取腾讯云CLB证书引用成功","account":"tencent-main","count":5}
+{"lv":"warn","ts":1791537959,"msg":"获取CLB监听器证书失败，跳过","load_balancer":"lb-1","error":"tencent clb api error: [TencentCloudSDKError] Code=AuthFailure, Message=鉴权失败, RequestId=req-denied"}
+{"lv":"warn","ts":1791537959,"msg":"获取CLB监听器证书失败，跳过","load_balancer":"lb-2","error":"tencent clb api error: [TencentCloudSDKError] Code=AuthFailure, Message=鉴权失败, RequestId=req-denied"}
+{"lv":"info","ts":1791537959,"msg":"获取腾讯云CLB证书引用成功","account":"tencent-main","count":0}
+{"lv":"info","ts":1791537959,"msg":"腾讯云CLB证书绑定成功","load_balancer":"lb-1","listener":"lbl-1","cloud_cert_id":"999"}
+{"lv":"info","ts":1791537959,"msg":"腾讯云CLB证书绑定成功","load_balancer":"lb-1","listener":"lbl-1","cloud_cert_id":"999"}
+{"lv":"info","ts":1791537959,"msg":"腾讯云CLB证书绑定成功","load_balancer":"lb-sh-1","listener":"lbl-sh-1","cloud_cert_id":"999"}
+{"lv":"info","ts":1791537959,"msg":"获取腾讯云EdgeOne证书引用成功","account":"tencent-main","count":4}
+{"lv":"info","ts":1791537959,"msg":"腾讯云EdgeOne证书绑定成功","zone":"zone-1","host":"www.a.com","cloud_cert_id":"999"}
+{"lv":"info","ts":1791537959,"msg":"腾讯云EdgeOne证书绑定成功","zone":"zone-1","host":"www.a.com","cloud_cert_id":"999"}
+{"lv":"info","ts":1791537959,"msg":"腾讯云证书上传成功","product":"cdn","cloud_cert_id":"987654321"}
+{"lv":"info","ts":1791537959,"msg":"腾讯云证书上传成功","product":"clb","cloud_cert_id":"111222333"}
+{"lv":"info","ts":1791537959,"msg":"腾讯云孤儿证书清理成功（同步删除）","cloud_cert_id":"987654321"}
+{"lv":"info","ts":1791537959,"msg":"腾讯云孤儿证书清理成功（同步删除）","cloud_cert_id":"987654321"}
+{"lv":"info","ts":1791537959,"msg":"腾讯云孤儿证书清理成功（异步任务完成）","cloud_cert_id":"987654321","task_id":"1001"}
+{"lv":"info","ts":1791537959,"msg":"腾讯云孤儿证书清理成功（异步任务完成）","cloud_cert_id":"987654321","task_id":"1005"}
+{"lv":"info","ts":1791537959,"msg":"腾讯云磁盘指标采集暂未启用(探测不支持,二期补)","disk_id":"disk-1","region":"ap-guangzhou","provider":"tencent","reason":"QCE/CBS 云盘 IO/使用率指标未注册且云监控数据查询权限未开通,指标名未收敛,见 disk-ops-insight probe-report §1.4"}
+{"lv":"info","ts":1791537959,"msg":"腾讯云磁盘指标采集暂未启用(探测不支持,二期补)","disk_id":"","region":"","provider":"tencent","reason":"QCE/CBS 云盘 IO/使用率指标未注册且云监控数据查询权限未开通,指标名未收敛,见 disk-ops-insight probe-report §1.4"}
+{"lv":"error","ts":1791537959,"msg":"腾讯云NAS指标查询失败","fs_id":"cfs-1","region":"ap-guangzhou","provider":"tencent","error":"获取腾讯云账号 APPID 失败: 响应为空"}
+{"lv":"error","ts":1791537959,"msg":"腾讯云NAS指标查询失败","fs_id":"cfs-1","region":"ap-guangzhou","provider":"tencent","error":"获取腾讯云账号 APPID 失败: cam unavailable"}
+{"lv":"error","ts":1791537959,"msg":"腾讯云OSS指标查询失败","bucket":"bkt","provider":"tencent","error":"查询OSS指标 StdStorage 失败: AuthFailure.SignatureFailure: auth failed"}
+{"lv":"error","ts":1791537959,"msg":"腾讯云OSS指标查询失败","bucket":"bkt","provider":"tencent","error":"client construction failed"}
+{"lv":"info","ts":1791538036,"msg":"获取腾讯云CDN证书引用成功","account":"tencent-main","count":3}
+{"lv":"info","ts":1791538036,"msg":"获取腾讯云CDN证书引用成功","account":"tencent-main","count":1}
+{"lv":"info","ts":1791538036,"msg":"获取腾讯云CDN证书引用成功","account":"tencent-main","count":0}
+{"lv":"info","ts":1791538036,"msg":"腾讯云CDN证书绑定成功","domain":"a.example.com","cloud_cert_id":"987654321"}
+{"lv":"info","ts":1791538036,"msg":"获取腾讯云CLB证书引用成功","account":"tencent-main","count":5}
+{"lv":"warn","ts":1791538036,"msg":"获取CLB监听器证书失败，跳过","load_balancer":"lb-1","error":"tencent clb api error: [TencentCloudSDKError] Code=AuthFailure, Message=鉴权失败, RequestId=req-denied"}
+{"lv":"warn","ts":1791538036,"msg":"获取CLB监听器证书失败，跳过","load_balancer":"lb-2","error":"tencent clb api error: [TencentCloudSDKError] Code=AuthFailure, Message=鉴权失败, RequestId=req-denied"}
+{"lv":"info","ts":1791538036,"msg":"获取腾讯云CLB证书引用成功","account":"tencent-main","count":0}
+{"lv":"info","ts":1791538036,"msg":"腾讯云CLB证书绑定成功","load_balancer":"lb-1","listener":"lbl-1","cloud_cert_id":"999"}
+{"lv":"info","ts":1791538036,"msg":"腾讯云CLB证书绑定成功","load_balancer":"lb-1","listener":"lbl-1","cloud_cert_id":"999"}
+{"lv":"info","ts":1791538036,"msg":"腾讯云CLB证书绑定成功","load_balancer":"lb-sh-1","listener":"lbl-sh-1","cloud_cert_id":"999"}
+{"lv":"info","ts":1791538036,"msg":"获取腾讯云EdgeOne证书引用成功","account":"tencent-main","count":4}
+{"lv":"info","ts":1791538036,"msg":"腾讯云EdgeOne证书绑定成功","zone":"zone-1","host":"www.a.com","cloud_cert_id":"999"}
+{"lv":"info","ts":1791538036,"msg":"腾讯云EdgeOne证书绑定成功","zone":"zone-1","host":"www.a.com","cloud_cert_id":"999"}
+{"lv":"info","ts":1791538036,"msg":"腾讯云证书上传成功","product":"cdn","cloud_cert_id":"987654321"}
+{"lv":"info","ts":1791538036,"msg":"腾讯云证书上传成功","product":"clb","cloud_cert_id":"111222333"}
+{"lv":"info","ts":1791538036,"msg":"腾讯云孤儿证书清理成功（同步删除）","cloud_cert_id":"987654321"}
+{"lv":"info","ts":1791538036,"msg":"腾讯云孤儿证书清理成功（同步删除）","cloud_cert_id":"987654321"}
+{"lv":"info","ts":1791538036,"msg":"腾讯云孤儿证书清理成功（异步任务完成）","cloud_cert_id":"987654321","task_id":"1001"}
+{"lv":"info","ts":1791538036,"msg":"腾讯云孤儿证书清理成功（异步任务完成）","cloud_cert_id":"987654321","task_id":"1005"}
+{"lv":"info","ts":1791538036,"msg":"腾讯云磁盘指标采集暂未启用(探测不支持,二期补)","disk_id":"disk-1","region":"ap-guangzhou","provider":"tencent","reason":"QCE/CBS 云盘 IO/使用率指标未注册且云监控数据查询权限未开通,指标名未收敛,见 disk-ops-insight probe-report §1.4"}
+{"lv":"info","ts":1791538036,"msg":"腾讯云磁盘指标采集暂未启用(探测不支持,二期补)","disk_id":"","region":"","provider":"tencent","reason":"QCE/CBS 云盘 IO/使用率指标未注册且云监控数据查询权限未开通,指标名未收敛,见 disk-ops-insight probe-report §1.4"}
+{"lv":"error","ts":1791538036,"msg":"腾讯云NAS指标查询失败","fs_id":"cfs-1","region":"ap-guangzhou","provider":"tencent","error":"获取腾讯云账号 APPID 失败: 响应为空"}
+{"lv":"error","ts":1791538036,"msg":"腾讯云NAS指标查询失败","fs_id":"cfs-1","region":"ap-guangzhou","provider":"tencent","error":"获取腾讯云账号 APPID 失败: cam unavailable"}
+{"lv":"error","ts":1791538036,"msg":"腾讯云OSS指标查询失败","bucket":"bkt","provider":"tencent","error":"查询OSS指标 StdStorage 失败: AuthFailure.SignatureFailure: auth failed"}
+{"lv":"error","ts":1791538036,"msg":"腾讯云OSS指标查询失败","bucket":"bkt","provider":"tencent","error":"client construction failed"}
+{"lv":"info","ts":1791538231,"msg":"获取腾讯云CDN证书引用成功","account":"tencent-main","count":3}
+{"lv":"info","ts":1791538231,"msg":"获取腾讯云CDN证书引用成功","account":"tencent-main","count":1}
+{"lv":"info","ts":1791538231,"msg":"获取腾讯云CDN证书引用成功","account":"tencent-main","count":0}
+{"lv":"info","ts":1791538231,"msg":"腾讯云CDN证书绑定成功","domain":"a.example.com","cloud_cert_id":"987654321"}
+{"lv":"info","ts":1791538231,"msg":"获取腾讯云CLB证书引用成功","account":"tencent-main","count":5}
+{"lv":"warn","ts":1791538231,"msg":"获取CLB监听器证书失败，跳过","load_balancer":"lb-1","error":"tencent clb api error: [TencentCloudSDKError] Code=AuthFailure, Message=鉴权失败, RequestId=req-denied"}
+{"lv":"warn","ts":1791538231,"msg":"获取CLB监听器证书失败，跳过","load_balancer":"lb-2","error":"tencent clb api error: [TencentCloudSDKError] Code=AuthFailure, Message=鉴权失败, RequestId=req-denied"}
+{"lv":"info","ts":1791538231,"msg":"获取腾讯云CLB证书引用成功","account":"tencent-main","count":0}
+{"lv":"info","ts":1791538231,"msg":"腾讯云CLB证书绑定成功","load_balancer":"lb-1","listener":"lbl-1","cloud_cert_id":"999"}
+{"lv":"info","ts":1791538231,"msg":"腾讯云CLB证书绑定成功","load_balancer":"lb-1","listener":"lbl-1","cloud_cert_id":"999"}
+{"lv":"info","ts":1791538231,"msg":"腾讯云CLB证书绑定成功","load_balancer":"lb-sh-1","listener":"lbl-sh-1","cloud_cert_id":"999"}
+{"lv":"info","ts":1791538231,"msg":"获取腾讯云EdgeOne证书引用成功","account":"tencent-main","count":4}
+{"lv":"info","ts":1791538231,"msg":"腾讯云EdgeOne证书绑定成功","zone":"zone-1","host":"www.a.com","cloud_cert_id":"999"}
+{"lv":"info","ts":1791538231,"msg":"腾讯云EdgeOne证书绑定成功","zone":"zone-1","host":"www.a.com","cloud_cert_id":"999"}
+{"lv":"info","ts":1791538231,"msg":"腾讯云证书上传成功","product":"cdn","cloud_cert_id":"987654321"}
+{"lv":"info","ts":1791538231,"msg":"腾讯云证书上传成功","product":"clb","cloud_cert_id":"111222333"}
+{"lv":"info","ts":1791538231,"msg":"腾讯云孤儿证书清理成功（同步删除）","cloud_cert_id":"987654321"}
+{"lv":"info","ts":1791538231,"msg":"腾讯云孤儿证书清理成功（同步删除）","cloud_cert_id":"987654321"}
+{"lv":"info","ts":1791538231,"msg":"腾讯云孤儿证书清理成功（异步任务完成）","cloud_cert_id":"987654321","task_id":"1001"}
+{"lv":"info","ts":1791538231,"msg":"腾讯云孤儿证书清理成功（异步任务完成）","cloud_cert_id":"987654321","task_id":"1005"}
+{"lv":"info","ts":1791538231,"msg":"腾讯云磁盘指标采集暂未启用(探测不支持,二期补)","disk_id":"disk-1","region":"ap-guangzhou","provider":"tencent","reason":"QCE/CBS 云盘 IO/使用率指标未注册且云监控数据查询权限未开通,指标名未收敛,见 disk-ops-insight probe-report §1.4"}
+{"lv":"info","ts":1791538231,"msg":"腾讯云磁盘指标采集暂未启用(探测不支持,二期补)","disk_id":"","region":"","provider":"tencent","reason":"QCE/CBS 云盘 IO/使用率指标未注册且云监控数据查询权限未开通,指标名未收敛,见 disk-ops-insight probe-report §1.4"}
+{"lv":"error","ts":1791538231,"msg":"腾讯云NAS指标查询失败","fs_id":"cfs-1","region":"ap-guangzhou","provider":"tencent","error":"获取腾讯云账号 APPID 失败: 响应为空"}
+{"lv":"error","ts":1791538231,"msg":"腾讯云NAS指标查询失败","fs_id":"cfs-1","region":"ap-guangzhou","provider":"tencent","error":"获取腾讯云账号 APPID 失败: cam unavailable"}
+{"lv":"error","ts":1791538231,"msg":"腾讯云OSS指标查询失败","bucket":"bkt","provider":"tencent","error":"查询OSS指标 StdStorage 失败: AuthFailure.SignatureFailure: auth failed"}
+{"lv":"error","ts":1791538231,"msg":"腾讯云OSS指标查询失败","bucket":"bkt","provider":"tencent","error":"client construction failed"}
+{"lv":"info","ts":1791538705,"msg":"获取腾讯云CDN证书引用成功","account":"tencent-main","count":3}
+{"lv":"info","ts":1791538705,"msg":"获取腾讯云CDN证书引用成功","account":"tencent-main","count":1}
+{"lv":"info","ts":1791538705,"msg":"获取腾讯云CDN证书引用成功","account":"tencent-main","count":0}
+{"lv":"info","ts":1791538705,"msg":"腾讯云CDN证书绑定成功","domain":"a.example.com","cloud_cert_id":"987654321"}
+{"lv":"info","ts":1791538705,"msg":"获取腾讯云CLB证书引用成功","account":"tencent-main","count":5}
+{"lv":"warn","ts":1791538705,"msg":"获取CLB监听器证书失败，跳过","load_balancer":"lb-1","error":"tencent clb api error: [TencentCloudSDKError] Code=AuthFailure, Message=鉴权失败, RequestId=req-denied"}
+{"lv":"warn","ts":1791538705,"msg":"获取CLB监听器证书失败，跳过","load_balancer":"lb-2","error":"tencent clb api error: [TencentCloudSDKError] Code=AuthFailure, Message=鉴权失败, RequestId=req-denied"}
+{"lv":"info","ts":1791538705,"msg":"获取腾讯云CLB证书引用成功","account":"tencent-main","count":0}
+{"lv":"info","ts":1791538705,"msg":"腾讯云CLB证书绑定成功","load_balancer":"lb-1","listener":"lbl-1","cloud_cert_id":"999"}
+{"lv":"info","ts":1791538705,"msg":"腾讯云CLB证书绑定成功","load_balancer":"lb-1","listener":"lbl-1","cloud_cert_id":"999"}
+{"lv":"info","ts":1791538705,"msg":"腾讯云CLB证书绑定成功","load_balancer":"lb-sh-1","listener":"lbl-sh-1","cloud_cert_id":"999"}
+{"lv":"info","ts":1791538705,"msg":"获取腾讯云EdgeOne证书引用成功","account":"tencent-main","count":4}
+{"lv":"info","ts":1791538705,"msg":"腾讯云EdgeOne证书绑定成功","zone":"zone-1","host":"www.a.com","cloud_cert_id":"999"}
+{"lv":"info","ts":1791538705,"msg":"腾讯云EdgeOne证书绑定成功","zone":"zone-1","host":"www.a.com","cloud_cert_id":"999"}
+{"lv":"info","ts":1791538705,"msg":"腾讯云证书上传成功","product":"cdn","cloud_cert_id":"987654321"}
+{"lv":"info","ts":1791538705,"msg":"腾讯云证书上传成功","product":"clb","cloud_cert_id":"111222333"}
+{"lv":"info","ts":1791538705,"msg":"腾讯云孤儿证书清理成功（同步删除）","cloud_cert_id":"987654321"}
+{"lv":"info","ts":1791538705,"msg":"腾讯云孤儿证书清理成功（同步删除）","cloud_cert_id":"987654321"}
+{"lv":"info","ts":1791538705,"msg":"腾讯云孤儿证书清理成功（异步任务完成）","cloud_cert_id":"987654321","task_id":"1001"}
+{"lv":"info","ts":1791538705,"msg":"腾讯云孤儿证书清理成功（异步任务完成）","cloud_cert_id":"987654321","task_id":"1005"}
+{"lv":"info","ts":1791538705,"msg":"腾讯云磁盘指标采集暂未启用(探测不支持,二期补)","disk_id":"disk-1","region":"ap-guangzhou","provider":"tencent","reason":"QCE/CBS 云盘 IO/使用率指标未注册且云监控数据查询权限未开通,指标名未收敛,见 disk-ops-insight probe-report §1.4"}
+{"lv":"info","ts":1791538705,"msg":"腾讯云磁盘指标采集暂未启用(探测不支持,二期补)","disk_id":"","region":"","provider":"tencent","reason":"QCE/CBS 云盘 IO/使用率指标未注册且云监控数据查询权限未开通,指标名未收敛,见 disk-ops-insight probe-report §1.4"}
+{"lv":"error","ts":1791538705,"msg":"腾讯云NAS指标查询失败","fs_id":"cfs-1","region":"ap-guangzhou","provider":"tencent","error":"获取腾讯云账号 APPID 失败: 响应为空"}
+{"lv":"error","ts":1791538705,"msg":"腾讯云NAS指标查询失败","fs_id":"cfs-1","region":"ap-guangzhou","provider":"tencent","error":"获取腾讯云账号 APPID 失败: cam unavailable"}
+{"lv":"error","ts":1791538705,"msg":"腾讯云OSS指标查询失败","bucket":"bkt","provider":"tencent","error":"查询OSS指标 StdStorage 失败: AuthFailure.SignatureFailure: auth failed"}
+{"lv":"error","ts":1791538705,"msg":"腾讯云OSS指标查询失败","bucket":"bkt","provider":"tencent","error":"client construction failed"}

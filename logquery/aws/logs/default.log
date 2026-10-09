@@ -1,0 +1,7 @@
+{"lv":"info","ts":1788337349,"msg":"[logquery-aws] bucket region resolved","bucket":"waf-loghub-clloggingbucket5f34e4eb-hjalewqix1db","region":"eu-central-1"}
+{"lv":"info","ts":1788337357,"msg":"[logquery-aws] bucket region resolved","bucket":"loghub-clloggingbucket5f34e4eb-asng9spoysri","region":"eu-central-1"}
+{"lv":"info","ts":1788337389,"msg":"[logquery-aws] bucket region resolved","bucket":"jlc-prod-cdn-log","region":"eu-central-1"}
+{"lv":"info","ts":1788337938,"msg":"[logquery-aws] bucket region resolved","bucket":"waf-loghub-clloggingbucket5f34e4eb-hjalewqix1db","region":"eu-central-1"}
+{"lv":"info","ts":1788338164,"msg":"[logquery-aws] bucket region resolved","bucket":"waf-loghub-clloggingbucket5f34e4eb-hjalewqix1db","region":"eu-central-1"}
+{"lv":"info","ts":1788338168,"msg":"[logquery-aws] bucket region resolved","bucket":"loghub-clloggingbucket5f34e4eb-asng9spoysri","region":"eu-central-1"}
+{"lv":"info","ts":1788338174,"msg":"[logquery-aws] bucket region resolved","bucket":"jlc-prod-cdn-log","region":"eu-central-1"}

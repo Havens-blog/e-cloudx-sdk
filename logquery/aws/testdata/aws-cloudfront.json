@@ -1,0 +1,28 @@
+{
+  "meta": {
+    "cloud": "aws",
+    "log_type": "cloudfront",
+    "desc": "CloudFront 标准日志(TSV)",
+    "bucket": "jlc-prod-cdn-log",
+    "key": "3d.jlcpcb.com/E1OVWLY3JDS4DE.2026-04-29-22.5710c9b9.gz",
+    "format": "tsv",
+    "header_lines": [
+      "#Version: 1.0",
+      "#Fields: date time x-edge-location sc-bytes c-ip cs-method cs(Host) cs-uri-stem sc-status cs(Referer) cs(User-Agent) cs-uri-query cs(Cookie) x-edge-result-type x-edge-request-id x-host-header cs-protocol cs-bytes time-taken x-forwarded-for ssl-protocol ssl-cipher x-edge-response-result-type cs-protocol-version fle-status fle-encrypted-fields c-port time-to-first-byte x-edge-detailed-result-type sc-content-type sc-content-len sc-range-start sc-range-end"
+    ],
+    "object_time": "2026-04-29 23:03:07+00:00",
+    "pulled_at": 1787828210
+  },
+  "sample_count": 3,
+  "samples": [
+    {
+      "_raw_line": "2026-04-29\t22:57:56\tCDG54-P2\t1170\t185.177.72.49\tGET\td3cq5m6xeuedwf.cloudfront.net\t/%25252f%25252eenv\t502\t-\tcurl/8.7.1\t-\t-\tError\t-airFv0-wKSHNi5QG3QWw-8WSpYx18jNBP3ohpQOyhphuOpZDYFshA==\td3cq5m6xeuedwf.cloudfront.net\thttps\t38\t0.885\t127.0.0.1\tTLSv1.3\tTLS_AES_128_GCM_SHA256\tError\tHTTP/2.0\t-\t-\t33678\t0.885\tOriginCommError\ttext/html;%20charset=UTF-8\t932\t-\t-"
+    },
+    {
+      "_raw_line": "2026-04-29\t22:57:58\tCDG54-P2\t1170\t185.177.72.49\tGET\td3cq5m6xeuedwf.cloudfront.net\t/%25252fpublic%25252f%25252eenv\t502\t-\tcurl/8.7.1\t-\t-\tError\tF8nLNJm_jRn_m8VWy8P8e8o_FGkAH67Gv89L2QAqxCr3aenAYmK47Q==\td3cq5m6xeuedwf.cloudfront.net\thttps\t46\t0.916\t127.0.0.1\tTLSv1.3\tTLS_AES_128_GCM_SHA256\tError\tHTTP/2.0\t-\t-\t33678\t0.916\tOriginCommError\ttext/html;%20charset=UTF-8\t932\t-\t-"
+    },
+    {
+      "_raw_line": "2026-04-29\t22:57:58\tCDG54-P2\t1171\t185.177.72.49\tGET\td3cq5m6xeuedwf.cloudfront.net\t/%25253a2375/containers/json\t502\t-\tcurl/8.7.1\t-\t-\tError\twplBZZp5Ws-j21LTNlD_3OJ6EhIk4kK_ymuFC7yvHrMEw1wrhVRdLg==\td3cq5m6xeuedwf.cloudfront.net\thttps\t47\t0.853\t127.0.0.1\tTLSv1.3\tTLS_AES_128_GCM_SHA256\tError\tHTTP/2.0\t-\t-\t33678\t0.853\tOriginCommError\ttext/html;%20charset=UTF-8\t932\t-\t-"
+    }
+  ]
+}

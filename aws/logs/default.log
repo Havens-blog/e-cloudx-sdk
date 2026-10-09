@@ -1,0 +1,310 @@
+{"lv":"info","ts":1789957728,"msg":"获取AWS EBS卷列表成功","region":"eu-west-1","count":0}
+{"lv":"info","ts":1789957730,"msg":"获取AWS EBS卷列表成功","region":"eu-central-1","count":123}
+{"lv":"info","ts":1789957731,"msg":"获取AWS EBS卷列表成功","region":"us-east-1","count":0}
+{"lv":"info","ts":1789957732,"msg":"获取AWS EBS卷列表成功","region":"eu-north-1","count":0}
+{"lv":"info","ts":1789957732,"msg":"获取AWS EBS卷列表成功","region":"ap-northeast-1","count":0}
+{"lv":"info","ts":1789957733,"msg":"获取AWS EBS卷列表成功","region":"ap-southeast-1","count":0}
+{"lv":"info","ts":1790044056,"msg":"获取AWS RDS实例列表成功","region":"eu-central-1","count":5}
+{"lv":"info","ts":1790044057,"msg":"获取AWS RDS实例列表成功","region":"eu-west-1","count":0}
+{"lv":"info","ts":1790044095,"msg":"获取AWS RDS实例列表成功","region":"eu-central-1","count":5}
+{"lv":"info","ts":1790044096,"msg":"获取AWS RDS实例列表成功","region":"eu-west-1","count":0}
+{"lv":"info","ts":1791454375,"msg":"获取AWSCloudFront证书引用成功","account":"aws-main","count":2}
+{"lv":"info","ts":1791454375,"msg":"获取AWS ELB证书引用成功","account":"aws-main","product":"alb","count":4}
+{"lv":"info","ts":1791454375,"msg":"获取AWS ELB证书引用成功","account":"aws-main","product":"nlb","count":2}
+{"lv":"warn","ts":1791454375,"msg":"获取ELB监听器证书失败，跳过","load_balancer":"arn:aws:elasticloadbalancing:us-east-1:1:loadbalancer/app/my-alb/abc","error":"cloud api rate limited: aws alb api throttled: api error TooManyRequestsException: Rate exceeded"}
+{"lv":"warn","ts":1791454375,"msg":"获取ELB监听器证书失败，跳过","load_balancer":"arn:aws:elasticloadbalancing:us-east-1:1:loadbalancer/app/my-alb/abc","error":"cloud api rate limited: aws alb api throttled: api error TooManyRequestsException: Rate exceeded"}
+{"lv":"info","ts":1791454375,"msg":"获取AWS ELB证书引用成功","account":"aws-main","product":"alb","count":0}
+{"lv":"info","ts":1791454375,"msg":"AWSACM证书上传成功","product":"cdn","region":"us-east-1","certificate_arn":"arn:aws:acm:us-east-1:123456789012:certificate/c1"}
+{"lv":"info","ts":1791454375,"msg":"AWSACM证书上传成功","product":"alb","region":"eu-west-1","certificate_arn":"arn:aws:acm:us-east-1:123456789012:certificate/c1"}
+{"lv":"info","ts":1791454375,"msg":"AWSACM证书上传成功","product":"nlb","region":"eu-west-1","certificate_arn":"arn:aws:acm:us-east-1:123456789012:certificate/c1"}
+{"lv":"info","ts":1791454375,"msg":"AWSCloudFront证书绑定成功","distribution":"E1ABCDEF","certificate_arn":"arn:aws:acm:us-east-1:123456789012:certificate/c1"}
+{"lv":"info","ts":1791454375,"msg":"AWSCloudFront证书绑定幂等跳过（查看器证书已引用目标ARN）","distribution":"E1ABCDEF","certificate_arn":"arn:aws:acm:us-east-1:123456789012:certificate/c1"}
+{"lv":"info","ts":1791454375,"msg":"AWSCloudFront证书绑定成功","distribution":"E1ABCDEF","certificate_arn":"arn:aws:acm:us-east-1:123456789012:certificate/new"}
+{"lv":"info","ts":1791454375,"msg":"AWSELB证书绑定成功","product":"alb","listener":"arn:aws:elasticloadbalancing:eu-west-1:123456789012:listener/app/my-alb/abc/l1","certificate_arn":"arn:aws:acm:eu-west-1:123456789012:certificate/c1"}
+{"lv":"info","ts":1791454375,"msg":"AWSELB证书绑定成功","product":"nlb","listener":"arn:aws:elasticloadbalancing:eu-west-1:123456789012:listener/app/my-alb/abc/l1","certificate_arn":"arn:aws:acm:eu-west-1:123456789012:certificate/c1"}
+{"lv":"info","ts":1791454375,"msg":"AWSELB证书绑定幂等跳过（证书已挂载）","product":"nlb","listener":"arn:aws:elasticloadbalancing:us-east-1:123456789012:listener/net/my-nlb/xyz/l9","certificate_arn":"arn:aws:acm:us-east-1:123456789012:certificate/c1"}
+{"lv":"info","ts":1791454375,"msg":"AWS孤儿证书清理成功","certificate_arn":"arn:aws:acm:eu-central-1:123456789012:certificate/c1"}
+{"lv":"info","ts":1791454375,"msg":"AWS孤儿证书清理幂等成功（证书已不存在）","certificate_arn":"arn:aws:acm:us-east-1:123456789012:certificate/c1"}
+{"lv":"info","ts":1791454375,"msg":"AWS孤儿证书清理幂等成功（删除时已不存在）","certificate_arn":"arn:aws:acm:us-east-1:123456789012:certificate/c1"}
+{"lv":"info","ts":1791454375,"msg":"获取AWSCloudFront证书引用成功","account":"aws-main","count":1}
+{"lv":"error","ts":1791454375,"msg":"AWS 磁盘指标查询失败","disk_id":"vol-1","region":"eu-central-1","provider":"aws","error":"查询 EBS 指标失败: cloudwatch throttled"}
+{"lv":"error","ts":1791454375,"msg":"AWS NAS 指标查询失败","fs_id":"fs-1","region":"eu-central-1","provider":"aws","error":"查询 EFS StorageBytes 失败: AccessDenied: not authorized"}
+{"lv":"error","ts":1791454375,"msg":"AWS S3 指标查询失败","bucket":"bkt","provider":"aws","error":"GetBucketLocation denied"}
+{"lv":"error","ts":1791454375,"msg":"AWS S3 指标查询失败","bucket":"bkt","provider":"aws","error":"查询 S3 指标失败: AccessDenied"}
+{"lv":"info","ts":1791454389,"msg":"获取AWS WAF Web ACL列表成功","region":"us-east-1","count":10}
+{"lv":"info","ts":1791454395,"msg":"获取AWS EBS卷列表成功","region":"eu-west-1","count":0}
+{"lv":"info","ts":1791533264,"msg":"获取AWSCloudFront证书引用成功","account":"aws-main","count":2}
+{"lv":"info","ts":1791533264,"msg":"获取AWS ELB证书引用成功","account":"aws-main","product":"alb","count":4}
+{"lv":"info","ts":1791533264,"msg":"获取AWS ELB证书引用成功","account":"aws-main","product":"nlb","count":2}
+{"lv":"warn","ts":1791533264,"msg":"获取ELB监听器证书失败，跳过","load_balancer":"arn:aws:elasticloadbalancing:us-east-1:1:loadbalancer/app/my-alb/abc","error":"cloud api rate limited: aws alb api throttled: api error TooManyRequestsException: Rate exceeded"}
+{"lv":"warn","ts":1791533264,"msg":"获取ELB监听器证书失败，跳过","load_balancer":"arn:aws:elasticloadbalancing:us-east-1:1:loadbalancer/app/my-alb/abc","error":"cloud api rate limited: aws alb api throttled: api error TooManyRequestsException: Rate exceeded"}
+{"lv":"info","ts":1791533264,"msg":"获取AWS ELB证书引用成功","account":"aws-main","product":"alb","count":0}
+{"lv":"info","ts":1791533264,"msg":"AWSACM证书上传成功","product":"cdn","region":"us-east-1","certificate_arn":"arn:aws:acm:us-east-1:123456789012:certificate/c1"}
+{"lv":"info","ts":1791533264,"msg":"AWSACM证书上传成功","product":"alb","region":"eu-west-1","certificate_arn":"arn:aws:acm:us-east-1:123456789012:certificate/c1"}
+{"lv":"info","ts":1791533264,"msg":"AWSACM证书上传成功","product":"nlb","region":"eu-west-1","certificate_arn":"arn:aws:acm:us-east-1:123456789012:certificate/c1"}
+{"lv":"info","ts":1791533264,"msg":"AWSCloudFront证书绑定成功","distribution":"E1ABCDEF","certificate_arn":"arn:aws:acm:us-east-1:123456789012:certificate/c1"}
+{"lv":"info","ts":1791533264,"msg":"AWSCloudFront证书绑定幂等跳过（查看器证书已引用目标ARN）","distribution":"E1ABCDEF","certificate_arn":"arn:aws:acm:us-east-1:123456789012:certificate/c1"}
+{"lv":"info","ts":1791533264,"msg":"AWSCloudFront证书绑定成功","distribution":"E1ABCDEF","certificate_arn":"arn:aws:acm:us-east-1:123456789012:certificate/new"}
+{"lv":"info","ts":1791533264,"msg":"AWSELB证书绑定成功","product":"alb","listener":"arn:aws:elasticloadbalancing:eu-west-1:123456789012:listener/app/my-alb/abc/l1","certificate_arn":"arn:aws:acm:eu-west-1:123456789012:certificate/c1"}
+{"lv":"info","ts":1791533264,"msg":"AWSELB证书绑定成功","product":"nlb","listener":"arn:aws:elasticloadbalancing:eu-west-1:123456789012:listener/app/my-alb/abc/l1","certificate_arn":"arn:aws:acm:eu-west-1:123456789012:certificate/c1"}
+{"lv":"info","ts":1791533264,"msg":"AWSELB证书绑定幂等跳过（证书已挂载）","product":"nlb","listener":"arn:aws:elasticloadbalancing:us-east-1:123456789012:listener/net/my-nlb/xyz/l9","certificate_arn":"arn:aws:acm:us-east-1:123456789012:certificate/c1"}
+{"lv":"info","ts":1791533264,"msg":"AWS孤儿证书清理成功","certificate_arn":"arn:aws:acm:eu-central-1:123456789012:certificate/c1"}
+{"lv":"info","ts":1791533264,"msg":"AWS孤儿证书清理幂等成功（证书已不存在）","certificate_arn":"arn:aws:acm:us-east-1:123456789012:certificate/c1"}
+{"lv":"info","ts":1791533264,"msg":"AWS孤儿证书清理幂等成功（删除时已不存在）","certificate_arn":"arn:aws:acm:us-east-1:123456789012:certificate/c1"}
+{"lv":"info","ts":1791533264,"msg":"获取AWSCloudFront证书引用成功","account":"aws-main","count":1}
+{"lv":"error","ts":1791533264,"msg":"AWS 磁盘指标查询失败","disk_id":"vol-1","region":"eu-central-1","provider":"aws","error":"查询 EBS 指标失败: cloudwatch throttled"}
+{"lv":"error","ts":1791533264,"msg":"AWS NAS 指标查询失败","fs_id":"fs-1","region":"eu-central-1","provider":"aws","error":"查询 EFS StorageBytes 失败: AccessDenied: not authorized"}
+{"lv":"error","ts":1791533264,"msg":"AWS S3 指标查询失败","bucket":"bkt","provider":"aws","error":"GetBucketLocation denied"}
+{"lv":"error","ts":1791533264,"msg":"AWS S3 指标查询失败","bucket":"bkt","provider":"aws","error":"查询 S3 指标失败: AccessDenied"}
+{"lv":"info","ts":1791533279,"msg":"获取AWS WAF Web ACL列表成功","region":"us-east-1","count":10}
+{"lv":"info","ts":1791533279,"msg":"获取AWS EBS卷列表成功","region":"eu-west-1","count":0}
+{"lv":"info","ts":1791533479,"msg":"获取AWSCloudFront证书引用成功","account":"aws-main","count":2}
+{"lv":"info","ts":1791533479,"msg":"获取AWS ELB证书引用成功","account":"aws-main","product":"alb","count":4}
+{"lv":"info","ts":1791533479,"msg":"获取AWS ELB证书引用成功","account":"aws-main","product":"nlb","count":2}
+{"lv":"warn","ts":1791533479,"msg":"获取ELB监听器证书失败，跳过","load_balancer":"arn:aws:elasticloadbalancing:us-east-1:1:loadbalancer/app/my-alb/abc","error":"cloud api rate limited: aws alb api throttled: api error TooManyRequestsException: Rate exceeded"}
+{"lv":"warn","ts":1791533479,"msg":"获取ELB监听器证书失败，跳过","load_balancer":"arn:aws:elasticloadbalancing:us-east-1:1:loadbalancer/app/my-alb/abc","error":"cloud api rate limited: aws alb api throttled: api error TooManyRequestsException: Rate exceeded"}
+{"lv":"info","ts":1791533479,"msg":"获取AWS ELB证书引用成功","account":"aws-main","product":"alb","count":0}
+{"lv":"info","ts":1791533479,"msg":"AWSACM证书上传成功","product":"cdn","region":"us-east-1","certificate_arn":"arn:aws:acm:us-east-1:123456789012:certificate/c1"}
+{"lv":"info","ts":1791533479,"msg":"AWSACM证书上传成功","product":"alb","region":"eu-west-1","certificate_arn":"arn:aws:acm:us-east-1:123456789012:certificate/c1"}
+{"lv":"info","ts":1791533479,"msg":"AWSACM证书上传成功","product":"nlb","region":"eu-west-1","certificate_arn":"arn:aws:acm:us-east-1:123456789012:certificate/c1"}
+{"lv":"info","ts":1791533479,"msg":"AWSCloudFront证书绑定成功","distribution":"E1ABCDEF","certificate_arn":"arn:aws:acm:us-east-1:123456789012:certificate/c1"}
+{"lv":"info","ts":1791533479,"msg":"AWSCloudFront证书绑定幂等跳过（查看器证书已引用目标ARN）","distribution":"E1ABCDEF","certificate_arn":"arn:aws:acm:us-east-1:123456789012:certificate/c1"}
+{"lv":"info","ts":1791533479,"msg":"AWSCloudFront证书绑定成功","distribution":"E1ABCDEF","certificate_arn":"arn:aws:acm:us-east-1:123456789012:certificate/new"}
+{"lv":"info","ts":1791533479,"msg":"AWSELB证书绑定成功","product":"alb","listener":"arn:aws:elasticloadbalancing:eu-west-1:123456789012:listener/app/my-alb/abc/l1","certificate_arn":"arn:aws:acm:eu-west-1:123456789012:certificate/c1"}
+{"lv":"info","ts":1791533479,"msg":"AWSELB证书绑定成功","product":"nlb","listener":"arn:aws:elasticloadbalancing:eu-west-1:123456789012:listener/app/my-alb/abc/l1","certificate_arn":"arn:aws:acm:eu-west-1:123456789012:certificate/c1"}
+{"lv":"info","ts":1791533479,"msg":"AWSELB证书绑定幂等跳过（证书已挂载）","product":"nlb","listener":"arn:aws:elasticloadbalancing:us-east-1:123456789012:listener/net/my-nlb/xyz/l9","certificate_arn":"arn:aws:acm:us-east-1:123456789012:certificate/c1"}
+{"lv":"info","ts":1791533479,"msg":"AWS孤儿证书清理成功","certificate_arn":"arn:aws:acm:eu-central-1:123456789012:certificate/c1"}
+{"lv":"info","ts":1791533479,"msg":"AWS孤儿证书清理幂等成功（证书已不存在）","certificate_arn":"arn:aws:acm:us-east-1:123456789012:certificate/c1"}
+{"lv":"info","ts":1791533479,"msg":"AWS孤儿证书清理幂等成功（删除时已不存在）","certificate_arn":"arn:aws:acm:us-east-1:123456789012:certificate/c1"}
+{"lv":"info","ts":1791533479,"msg":"获取AWSCloudFront证书引用成功","account":"aws-main","count":1}
+{"lv":"error","ts":1791533479,"msg":"AWS 磁盘指标查询失败","disk_id":"vol-1","region":"eu-central-1","provider":"aws","error":"查询 EBS 指标失败: cloudwatch throttled"}
+{"lv":"error","ts":1791533479,"msg":"AWS NAS 指标查询失败","fs_id":"fs-1","region":"eu-central-1","provider":"aws","error":"查询 EFS StorageBytes 失败: AccessDenied: not authorized"}
+{"lv":"error","ts":1791533479,"msg":"AWS S3 指标查询失败","bucket":"bkt","provider":"aws","error":"GetBucketLocation denied"}
+{"lv":"error","ts":1791533479,"msg":"AWS S3 指标查询失败","bucket":"bkt","provider":"aws","error":"查询 S3 指标失败: AccessDenied"}
+{"lv":"info","ts":1791533496,"msg":"获取AWS WAF Web ACL列表成功","region":"us-east-1","count":10}
+{"lv":"info","ts":1791533497,"msg":"获取AWS EBS卷列表成功","region":"eu-west-1","count":0}
+{"lv":"info","ts":1791533645,"msg":"获取AWSCloudFront证书引用成功","account":"aws-main","count":2}
+{"lv":"info","ts":1791533645,"msg":"获取AWS ELB证书引用成功","account":"aws-main","product":"alb","count":4}
+{"lv":"info","ts":1791533645,"msg":"获取AWS ELB证书引用成功","account":"aws-main","product":"nlb","count":2}
+{"lv":"warn","ts":1791533645,"msg":"获取ELB监听器证书失败，跳过","load_balancer":"arn:aws:elasticloadbalancing:us-east-1:1:loadbalancer/app/my-alb/abc","error":"cloud api rate limited: aws alb api throttled: api error TooManyRequestsException: Rate exceeded"}
+{"lv":"warn","ts":1791533645,"msg":"获取ELB监听器证书失败，跳过","load_balancer":"arn:aws:elasticloadbalancing:us-east-1:1:loadbalancer/app/my-alb/abc","error":"cloud api rate limited: aws alb api throttled: api error TooManyRequestsException: Rate exceeded"}
+{"lv":"info","ts":1791533645,"msg":"获取AWS ELB证书引用成功","account":"aws-main","product":"alb","count":0}
+{"lv":"info","ts":1791533645,"msg":"AWSACM证书上传成功","product":"cdn","region":"us-east-1","certificate_arn":"arn:aws:acm:us-east-1:123456789012:certificate/c1"}
+{"lv":"info","ts":1791533645,"msg":"AWSACM证书上传成功","product":"alb","region":"eu-west-1","certificate_arn":"arn:aws:acm:us-east-1:123456789012:certificate/c1"}
+{"lv":"info","ts":1791533645,"msg":"AWSACM证书上传成功","product":"nlb","region":"eu-west-1","certificate_arn":"arn:aws:acm:us-east-1:123456789012:certificate/c1"}
+{"lv":"info","ts":1791533645,"msg":"AWSCloudFront证书绑定成功","distribution":"E1ABCDEF","certificate_arn":"arn:aws:acm:us-east-1:123456789012:certificate/c1"}
+{"lv":"info","ts":1791533645,"msg":"AWSCloudFront证书绑定幂等跳过（查看器证书已引用目标ARN）","distribution":"E1ABCDEF","certificate_arn":"arn:aws:acm:us-east-1:123456789012:certificate/c1"}
+{"lv":"info","ts":1791533645,"msg":"AWSCloudFront证书绑定成功","distribution":"E1ABCDEF","certificate_arn":"arn:aws:acm:us-east-1:123456789012:certificate/new"}
+{"lv":"info","ts":1791533645,"msg":"AWSELB证书绑定成功","product":"alb","listener":"arn:aws:elasticloadbalancing:eu-west-1:123456789012:listener/app/my-alb/abc/l1","certificate_arn":"arn:aws:acm:eu-west-1:123456789012:certificate/c1"}
+{"lv":"info","ts":1791533645,"msg":"AWSELB证书绑定成功","product":"nlb","listener":"arn:aws:elasticloadbalancing:eu-west-1:123456789012:listener/app/my-alb/abc/l1","certificate_arn":"arn:aws:acm:eu-west-1:123456789012:certificate/c1"}
+{"lv":"info","ts":1791533645,"msg":"AWSELB证书绑定幂等跳过（证书已挂载）","product":"nlb","listener":"arn:aws:elasticloadbalancing:us-east-1:123456789012:listener/net/my-nlb/xyz/l9","certificate_arn":"arn:aws:acm:us-east-1:123456789012:certificate/c1"}
+{"lv":"info","ts":1791533645,"msg":"AWS孤儿证书清理成功","certificate_arn":"arn:aws:acm:eu-central-1:123456789012:certificate/c1"}
+{"lv":"info","ts":1791533645,"msg":"AWS孤儿证书清理幂等成功（证书已不存在）","certificate_arn":"arn:aws:acm:us-east-1:123456789012:certificate/c1"}
+{"lv":"info","ts":1791533645,"msg":"AWS孤儿证书清理幂等成功（删除时已不存在）","certificate_arn":"arn:aws:acm:us-east-1:123456789012:certificate/c1"}
+{"lv":"info","ts":1791533645,"msg":"获取AWSCloudFront证书引用成功","account":"aws-main","count":1}
+{"lv":"error","ts":1791533645,"msg":"AWS 磁盘指标查询失败","disk_id":"vol-1","region":"eu-central-1","provider":"aws","error":"查询 EBS 指标失败: cloudwatch throttled"}
+{"lv":"error","ts":1791533645,"msg":"AWS NAS 指标查询失败","fs_id":"fs-1","region":"eu-central-1","provider":"aws","error":"查询 EFS StorageBytes 失败: AccessDenied: not authorized"}
+{"lv":"error","ts":1791533645,"msg":"AWS S3 指标查询失败","bucket":"bkt","provider":"aws","error":"GetBucketLocation denied"}
+{"lv":"error","ts":1791533645,"msg":"AWS S3 指标查询失败","bucket":"bkt","provider":"aws","error":"查询 S3 指标失败: AccessDenied"}
+{"lv":"info","ts":1791533652,"msg":"获取AWSCloudFront证书引用成功","account":"aws-main","count":2}
+{"lv":"info","ts":1791533652,"msg":"获取AWS ELB证书引用成功","account":"aws-main","product":"alb","count":4}
+{"lv":"info","ts":1791533652,"msg":"获取AWS ELB证书引用成功","account":"aws-main","product":"nlb","count":2}
+{"lv":"warn","ts":1791533652,"msg":"获取ELB监听器证书失败，跳过","load_balancer":"arn:aws:elasticloadbalancing:us-east-1:1:loadbalancer/app/my-alb/abc","error":"cloud api rate limited: aws alb api throttled: api error TooManyRequestsException: Rate exceeded"}
+{"lv":"warn","ts":1791533652,"msg":"获取ELB监听器证书失败，跳过","load_balancer":"arn:aws:elasticloadbalancing:us-east-1:1:loadbalancer/app/my-alb/abc","error":"cloud api rate limited: aws alb api throttled: api error TooManyRequestsException: Rate exceeded"}
+{"lv":"info","ts":1791533652,"msg":"获取AWS ELB证书引用成功","account":"aws-main","product":"alb","count":0}
+{"lv":"info","ts":1791533652,"msg":"AWSACM证书上传成功","product":"cdn","region":"us-east-1","certificate_arn":"arn:aws:acm:us-east-1:123456789012:certificate/c1"}
+{"lv":"info","ts":1791533652,"msg":"AWSACM证书上传成功","product":"alb","region":"eu-west-1","certificate_arn":"arn:aws:acm:us-east-1:123456789012:certificate/c1"}
+{"lv":"info","ts":1791533652,"msg":"AWSACM证书上传成功","product":"nlb","region":"eu-west-1","certificate_arn":"arn:aws:acm:us-east-1:123456789012:certificate/c1"}
+{"lv":"info","ts":1791533652,"msg":"AWSCloudFront证书绑定成功","distribution":"E1ABCDEF","certificate_arn":"arn:aws:acm:us-east-1:123456789012:certificate/c1"}
+{"lv":"info","ts":1791533652,"msg":"AWSCloudFront证书绑定幂等跳过（查看器证书已引用目标ARN）","distribution":"E1ABCDEF","certificate_arn":"arn:aws:acm:us-east-1:123456789012:certificate/c1"}
+{"lv":"info","ts":1791533652,"msg":"AWSCloudFront证书绑定成功","distribution":"E1ABCDEF","certificate_arn":"arn:aws:acm:us-east-1:123456789012:certificate/new"}
+{"lv":"info","ts":1791533652,"msg":"AWSELB证书绑定成功","product":"alb","listener":"arn:aws:elasticloadbalancing:eu-west-1:123456789012:listener/app/my-alb/abc/l1","certificate_arn":"arn:aws:acm:eu-west-1:123456789012:certificate/c1"}
+{"lv":"info","ts":1791533652,"msg":"AWSELB证书绑定成功","product":"nlb","listener":"arn:aws:elasticloadbalancing:eu-west-1:123456789012:listener/app/my-alb/abc/l1","certificate_arn":"arn:aws:acm:eu-west-1:123456789012:certificate/c1"}
+{"lv":"info","ts":1791533652,"msg":"AWSELB证书绑定幂等跳过（证书已挂载）","product":"nlb","listener":"arn:aws:elasticloadbalancing:us-east-1:123456789012:listener/net/my-nlb/xyz/l9","certificate_arn":"arn:aws:acm:us-east-1:123456789012:certificate/c1"}
+{"lv":"info","ts":1791533652,"msg":"AWS孤儿证书清理成功","certificate_arn":"arn:aws:acm:eu-central-1:123456789012:certificate/c1"}
+{"lv":"info","ts":1791533652,"msg":"AWS孤儿证书清理幂等成功（证书已不存在）","certificate_arn":"arn:aws:acm:us-east-1:123456789012:certificate/c1"}
+{"lv":"info","ts":1791533652,"msg":"AWS孤儿证书清理幂等成功（删除时已不存在）","certificate_arn":"arn:aws:acm:us-east-1:123456789012:certificate/c1"}
+{"lv":"info","ts":1791533652,"msg":"获取AWSCloudFront证书引用成功","account":"aws-main","count":1}
+{"lv":"error","ts":1791533652,"msg":"AWS 磁盘指标查询失败","disk_id":"vol-1","region":"eu-central-1","provider":"aws","error":"查询 EBS 指标失败: cloudwatch throttled"}
+{"lv":"error","ts":1791533652,"msg":"AWS NAS 指标查询失败","fs_id":"fs-1","region":"eu-central-1","provider":"aws","error":"查询 EFS StorageBytes 失败: AccessDenied: not authorized"}
+{"lv":"error","ts":1791533652,"msg":"AWS S3 指标查询失败","bucket":"bkt","provider":"aws","error":"GetBucketLocation denied"}
+{"lv":"error","ts":1791533652,"msg":"AWS S3 指标查询失败","bucket":"bkt","provider":"aws","error":"查询 S3 指标失败: AccessDenied"}
+{"lv":"info","ts":1791533660,"msg":"获取AWS WAF Web ACL列表成功","region":"us-east-1","count":10}
+{"lv":"info","ts":1791533662,"msg":"获取AWS EBS卷列表成功","region":"eu-west-1","count":0}
+{"lv":"info","ts":1791533669,"msg":"获取AWS WAF Web ACL列表成功","region":"us-east-1","count":10}
+{"lv":"info","ts":1791533673,"msg":"获取AWS EBS卷列表成功","region":"eu-west-1","count":0}
+{"lv":"info","ts":1791534173,"msg":"获取AWSCloudFront证书引用成功","account":"aws-main","count":2}
+{"lv":"info","ts":1791534173,"msg":"获取AWS ELB证书引用成功","account":"aws-main","product":"alb","count":4}
+{"lv":"info","ts":1791534173,"msg":"获取AWS ELB证书引用成功","account":"aws-main","product":"nlb","count":2}
+{"lv":"warn","ts":1791534173,"msg":"获取ELB监听器证书失败，跳过","load_balancer":"arn:aws:elasticloadbalancing:us-east-1:1:loadbalancer/app/my-alb/abc","error":"cloud api rate limited: aws alb api throttled: api error TooManyRequestsException: Rate exceeded"}
+{"lv":"warn","ts":1791534173,"msg":"获取ELB监听器证书失败，跳过","load_balancer":"arn:aws:elasticloadbalancing:us-east-1:1:loadbalancer/app/my-alb/abc","error":"cloud api rate limited: aws alb api throttled: api error TooManyRequestsException: Rate exceeded"}
+{"lv":"info","ts":1791534173,"msg":"获取AWS ELB证书引用成功","account":"aws-main","product":"alb","count":0}
+{"lv":"info","ts":1791534173,"msg":"AWSACM证书上传成功","product":"cdn","region":"us-east-1","certificate_arn":"arn:aws:acm:us-east-1:123456789012:certificate/c1"}
+{"lv":"info","ts":1791534173,"msg":"AWSACM证书上传成功","product":"alb","region":"eu-west-1","certificate_arn":"arn:aws:acm:us-east-1:123456789012:certificate/c1"}
+{"lv":"info","ts":1791534173,"msg":"AWSACM证书上传成功","product":"nlb","region":"eu-west-1","certificate_arn":"arn:aws:acm:us-east-1:123456789012:certificate/c1"}
+{"lv":"info","ts":1791534173,"msg":"AWSCloudFront证书绑定成功","distribution":"E1ABCDEF","certificate_arn":"arn:aws:acm:us-east-1:123456789012:certificate/c1"}
+{"lv":"info","ts":1791534173,"msg":"AWSCloudFront证书绑定幂等跳过（查看器证书已引用目标ARN）","distribution":"E1ABCDEF","certificate_arn":"arn:aws:acm:us-east-1:123456789012:certificate/c1"}
+{"lv":"info","ts":1791534173,"msg":"AWSCloudFront证书绑定成功","distribution":"E1ABCDEF","certificate_arn":"arn:aws:acm:us-east-1:123456789012:certificate/new"}
+{"lv":"info","ts":1791534173,"msg":"AWSELB证书绑定成功","product":"alb","listener":"arn:aws:elasticloadbalancing:eu-west-1:123456789012:listener/app/my-alb/abc/l1","certificate_arn":"arn:aws:acm:eu-west-1:123456789012:certificate/c1"}
+{"lv":"info","ts":1791534173,"msg":"AWSELB证书绑定成功","product":"nlb","listener":"arn:aws:elasticloadbalancing:eu-west-1:123456789012:listener/app/my-alb/abc/l1","certificate_arn":"arn:aws:acm:eu-west-1:123456789012:certificate/c1"}
+{"lv":"info","ts":1791534173,"msg":"AWSELB证书绑定幂等跳过（证书已挂载）","product":"nlb","listener":"arn:aws:elasticloadbalancing:us-east-1:123456789012:listener/net/my-nlb/xyz/l9","certificate_arn":"arn:aws:acm:us-east-1:123456789012:certificate/c1"}
+{"lv":"info","ts":1791534173,"msg":"AWS孤儿证书清理成功","certificate_arn":"arn:aws:acm:eu-central-1:123456789012:certificate/c1"}
+{"lv":"info","ts":1791534173,"msg":"AWS孤儿证书清理幂等成功（证书已不存在）","certificate_arn":"arn:aws:acm:us-east-1:123456789012:certificate/c1"}
+{"lv":"info","ts":1791534173,"msg":"AWS孤儿证书清理幂等成功（删除时已不存在）","certificate_arn":"arn:aws:acm:us-east-1:123456789012:certificate/c1"}
+{"lv":"info","ts":1791534173,"msg":"获取AWSCloudFront证书引用成功","account":"aws-main","count":1}
+{"lv":"error","ts":1791534173,"msg":"AWS 磁盘指标查询失败","disk_id":"vol-1","region":"eu-central-1","provider":"aws","error":"查询 EBS 指标失败: cloudwatch throttled"}
+{"lv":"error","ts":1791534173,"msg":"AWS NAS 指标查询失败","fs_id":"fs-1","region":"eu-central-1","provider":"aws","error":"查询 EFS StorageBytes 失败: AccessDenied: not authorized"}
+{"lv":"error","ts":1791534173,"msg":"AWS S3 指标查询失败","bucket":"bkt","provider":"aws","error":"GetBucketLocation denied"}
+{"lv":"error","ts":1791534173,"msg":"AWS S3 指标查询失败","bucket":"bkt","provider":"aws","error":"查询 S3 指标失败: AccessDenied"}
+{"lv":"info","ts":1791534186,"msg":"获取AWS WAF Web ACL列表成功","region":"us-east-1","count":10}
+{"lv":"info","ts":1791534187,"msg":"获取AWS EBS卷列表成功","region":"eu-west-1","count":0}
+{"lv":"info","ts":1791537516,"msg":"获取AWSCloudFront证书引用成功","account":"aws-main","count":2}
+{"lv":"info","ts":1791537516,"msg":"获取AWS ELB证书引用成功","account":"aws-main","product":"alb","count":4}
+{"lv":"info","ts":1791537516,"msg":"获取AWS ELB证书引用成功","account":"aws-main","product":"nlb","count":2}
+{"lv":"warn","ts":1791537516,"msg":"获取ELB监听器证书失败，跳过","load_balancer":"arn:aws:elasticloadbalancing:us-east-1:1:loadbalancer/app/my-alb/abc","error":"cloud api rate limited: aws alb api throttled: api error TooManyRequestsException: Rate exceeded"}
+{"lv":"warn","ts":1791537516,"msg":"获取ELB监听器证书失败，跳过","load_balancer":"arn:aws:elasticloadbalancing:us-east-1:1:loadbalancer/app/my-alb/abc","error":"cloud api rate limited: aws alb api throttled: api error TooManyRequestsException: Rate exceeded"}
+{"lv":"info","ts":1791537516,"msg":"获取AWS ELB证书引用成功","account":"aws-main","product":"alb","count":0}
+{"lv":"info","ts":1791537516,"msg":"AWSACM证书上传成功","product":"cdn","region":"us-east-1","certificate_arn":"arn:aws:acm:us-east-1:123456789012:certificate/c1"}
+{"lv":"info","ts":1791537516,"msg":"AWSACM证书上传成功","product":"alb","region":"eu-west-1","certificate_arn":"arn:aws:acm:us-east-1:123456789012:certificate/c1"}
+{"lv":"info","ts":1791537516,"msg":"AWSACM证书上传成功","product":"nlb","region":"eu-west-1","certificate_arn":"arn:aws:acm:us-east-1:123456789012:certificate/c1"}
+{"lv":"info","ts":1791537516,"msg":"AWSCloudFront证书绑定成功","distribution":"E1ABCDEF","certificate_arn":"arn:aws:acm:us-east-1:123456789012:certificate/c1"}
+{"lv":"info","ts":1791537516,"msg":"AWSCloudFront证书绑定幂等跳过（查看器证书已引用目标ARN）","distribution":"E1ABCDEF","certificate_arn":"arn:aws:acm:us-east-1:123456789012:certificate/c1"}
+{"lv":"info","ts":1791537516,"msg":"AWSCloudFront证书绑定成功","distribution":"E1ABCDEF","certificate_arn":"arn:aws:acm:us-east-1:123456789012:certificate/new"}
+{"lv":"info","ts":1791537516,"msg":"AWSELB证书绑定成功","product":"alb","listener":"arn:aws:elasticloadbalancing:eu-west-1:123456789012:listener/app/my-alb/abc/l1","certificate_arn":"arn:aws:acm:eu-west-1:123456789012:certificate/c1"}
+{"lv":"info","ts":1791537516,"msg":"AWSELB证书绑定成功","product":"nlb","listener":"arn:aws:elasticloadbalancing:eu-west-1:123456789012:listener/app/my-alb/abc/l1","certificate_arn":"arn:aws:acm:eu-west-1:123456789012:certificate/c1"}
+{"lv":"info","ts":1791537516,"msg":"AWSELB证书绑定幂等跳过（证书已挂载）","product":"nlb","listener":"arn:aws:elasticloadbalancing:us-east-1:123456789012:listener/net/my-nlb/xyz/l9","certificate_arn":"arn:aws:acm:us-east-1:123456789012:certificate/c1"}
+{"lv":"info","ts":1791537516,"msg":"AWS孤儿证书清理成功","certificate_arn":"arn:aws:acm:eu-central-1:123456789012:certificate/c1"}
+{"lv":"info","ts":1791537516,"msg":"AWS孤儿证书清理幂等成功（证书已不存在）","certificate_arn":"arn:aws:acm:us-east-1:123456789012:certificate/c1"}
+{"lv":"info","ts":1791537516,"msg":"AWS孤儿证书清理幂等成功（删除时已不存在）","certificate_arn":"arn:aws:acm:us-east-1:123456789012:certificate/c1"}
+{"lv":"info","ts":1791537516,"msg":"获取AWSCloudFront证书引用成功","account":"aws-main","count":1}
+{"lv":"error","ts":1791537516,"msg":"AWS 磁盘指标查询失败","disk_id":"vol-1","region":"eu-central-1","provider":"aws","error":"查询 EBS 指标失败: cloudwatch throttled"}
+{"lv":"error","ts":1791537516,"msg":"AWS NAS 指标查询失败","fs_id":"fs-1","region":"eu-central-1","provider":"aws","error":"查询 EFS StorageBytes 失败: AccessDenied: not authorized"}
+{"lv":"error","ts":1791537516,"msg":"AWS S3 指标查询失败","bucket":"bkt","provider":"aws","error":"GetBucketLocation denied"}
+{"lv":"error","ts":1791537516,"msg":"AWS S3 指标查询失败","bucket":"bkt","provider":"aws","error":"查询 S3 指标失败: AccessDenied"}
+{"lv":"info","ts":1791537530,"msg":"获取AWS WAF Web ACL列表成功","region":"us-east-1","count":10}
+{"lv":"info","ts":1791537531,"msg":"获取AWS EBS卷列表成功","region":"eu-west-1","count":0}
+{"lv":"info","ts":1791537582,"msg":"获取AWSCloudFront证书引用成功","account":"aws-main","count":2}
+{"lv":"info","ts":1791537582,"msg":"获取AWS ELB证书引用成功","account":"aws-main","product":"alb","count":4}
+{"lv":"info","ts":1791537582,"msg":"获取AWS ELB证书引用成功","account":"aws-main","product":"nlb","count":2}
+{"lv":"warn","ts":1791537582,"msg":"获取ELB监听器证书失败，跳过","load_balancer":"arn:aws:elasticloadbalancing:us-east-1:1:loadbalancer/app/my-alb/abc","error":"cloud api rate limited: aws alb api throttled: api error TooManyRequestsException: Rate exceeded"}
+{"lv":"warn","ts":1791537582,"msg":"获取ELB监听器证书失败，跳过","load_balancer":"arn:aws:elasticloadbalancing:us-east-1:1:loadbalancer/app/my-alb/abc","error":"cloud api rate limited: aws alb api throttled: api error TooManyRequestsException: Rate exceeded"}
+{"lv":"info","ts":1791537582,"msg":"获取AWS ELB证书引用成功","account":"aws-main","product":"alb","count":0}
+{"lv":"info","ts":1791537582,"msg":"AWSACM证书上传成功","product":"cdn","region":"us-east-1","certificate_arn":"arn:aws:acm:us-east-1:123456789012:certificate/c1"}
+{"lv":"info","ts":1791537582,"msg":"AWSACM证书上传成功","product":"alb","region":"eu-west-1","certificate_arn":"arn:aws:acm:us-east-1:123456789012:certificate/c1"}
+{"lv":"info","ts":1791537582,"msg":"AWSACM证书上传成功","product":"nlb","region":"eu-west-1","certificate_arn":"arn:aws:acm:us-east-1:123456789012:certificate/c1"}
+{"lv":"info","ts":1791537582,"msg":"AWSCloudFront证书绑定成功","distribution":"E1ABCDEF","certificate_arn":"arn:aws:acm:us-east-1:123456789012:certificate/c1"}
+{"lv":"info","ts":1791537582,"msg":"AWSCloudFront证书绑定幂等跳过（查看器证书已引用目标ARN）","distribution":"E1ABCDEF","certificate_arn":"arn:aws:acm:us-east-1:123456789012:certificate/c1"}
+{"lv":"info","ts":1791537582,"msg":"AWSCloudFront证书绑定成功","distribution":"E1ABCDEF","certificate_arn":"arn:aws:acm:us-east-1:123456789012:certificate/new"}
+{"lv":"info","ts":1791537582,"msg":"AWSELB证书绑定成功","product":"alb","listener":"arn:aws:elasticloadbalancing:eu-west-1:123456789012:listener/app/my-alb/abc/l1","certificate_arn":"arn:aws:acm:eu-west-1:123456789012:certificate/c1"}
+{"lv":"info","ts":1791537582,"msg":"AWSELB证书绑定成功","product":"nlb","listener":"arn:aws:elasticloadbalancing:eu-west-1:123456789012:listener/app/my-alb/abc/l1","certificate_arn":"arn:aws:acm:eu-west-1:123456789012:certificate/c1"}
+{"lv":"info","ts":1791537582,"msg":"AWSELB证书绑定幂等跳过（证书已挂载）","product":"nlb","listener":"arn:aws:elasticloadbalancing:us-east-1:123456789012:listener/net/my-nlb/xyz/l9","certificate_arn":"arn:aws:acm:us-east-1:123456789012:certificate/c1"}
+{"lv":"info","ts":1791537582,"msg":"AWS孤儿证书清理成功","certificate_arn":"arn:aws:acm:eu-central-1:123456789012:certificate/c1"}
+{"lv":"info","ts":1791537582,"msg":"AWS孤儿证书清理幂等成功（证书已不存在）","certificate_arn":"arn:aws:acm:us-east-1:123456789012:certificate/c1"}
+{"lv":"info","ts":1791537582,"msg":"AWS孤儿证书清理幂等成功（删除时已不存在）","certificate_arn":"arn:aws:acm:us-east-1:123456789012:certificate/c1"}
+{"lv":"info","ts":1791537582,"msg":"获取AWSCloudFront证书引用成功","account":"aws-main","count":1}
+{"lv":"error","ts":1791537582,"msg":"AWS 磁盘指标查询失败","disk_id":"vol-1","region":"eu-central-1","provider":"aws","error":"查询 EBS 指标失败: cloudwatch throttled"}
+{"lv":"error","ts":1791537582,"msg":"AWS NAS 指标查询失败","fs_id":"fs-1","region":"eu-central-1","provider":"aws","error":"查询 EFS StorageBytes 失败: AccessDenied: not authorized"}
+{"lv":"error","ts":1791537582,"msg":"AWS S3 指标查询失败","bucket":"bkt","provider":"aws","error":"GetBucketLocation denied"}
+{"lv":"error","ts":1791537582,"msg":"AWS S3 指标查询失败","bucket":"bkt","provider":"aws","error":"查询 S3 指标失败: AccessDenied"}
+{"lv":"info","ts":1791537597,"msg":"获取AWS WAF Web ACL列表成功","region":"us-east-1","count":10}
+{"lv":"info","ts":1791537599,"msg":"获取AWS EBS卷列表成功","region":"eu-west-1","count":0}
+{"lv":"info","ts":1791538230,"msg":"获取AWSCloudFront证书引用成功","account":"aws-main","count":2}
+{"lv":"info","ts":1791538230,"msg":"获取AWS ELB证书引用成功","account":"aws-main","product":"alb","count":4}
+{"lv":"info","ts":1791538230,"msg":"获取AWS ELB证书引用成功","account":"aws-main","product":"nlb","count":2}
+{"lv":"warn","ts":1791538230,"msg":"获取ELB监听器证书失败，跳过","load_balancer":"arn:aws:elasticloadbalancing:us-east-1:1:loadbalancer/app/my-alb/abc","error":"cloud api rate limited: aws alb api throttled: api error TooManyRequestsException: Rate exceeded"}
+{"lv":"warn","ts":1791538230,"msg":"获取ELB监听器证书失败，跳过","load_balancer":"arn:aws:elasticloadbalancing:us-east-1:1:loadbalancer/app/my-alb/abc","error":"cloud api rate limited: aws alb api throttled: api error TooManyRequestsException: Rate exceeded"}
+{"lv":"info","ts":1791538230,"msg":"获取AWS ELB证书引用成功","account":"aws-main","product":"alb","count":0}
+{"lv":"info","ts":1791538230,"msg":"AWSACM证书上传成功","product":"cdn","region":"us-east-1","certificate_arn":"arn:aws:acm:us-east-1:123456789012:certificate/c1"}
+{"lv":"info","ts":1791538230,"msg":"AWSACM证书上传成功","product":"alb","region":"eu-west-1","certificate_arn":"arn:aws:acm:us-east-1:123456789012:certificate/c1"}
+{"lv":"info","ts":1791538230,"msg":"AWSACM证书上传成功","product":"nlb","region":"eu-west-1","certificate_arn":"arn:aws:acm:us-east-1:123456789012:certificate/c1"}
+{"lv":"info","ts":1791538230,"msg":"AWSCloudFront证书绑定成功","distribution":"E1ABCDEF","certificate_arn":"arn:aws:acm:us-east-1:123456789012:certificate/c1"}
+{"lv":"info","ts":1791538230,"msg":"AWSCloudFront证书绑定幂等跳过（查看器证书已引用目标ARN）","distribution":"E1ABCDEF","certificate_arn":"arn:aws:acm:us-east-1:123456789012:certificate/c1"}
+{"lv":"info","ts":1791538230,"msg":"AWSCloudFront证书绑定成功","distribution":"E1ABCDEF","certificate_arn":"arn:aws:acm:us-east-1:123456789012:certificate/new"}
+{"lv":"info","ts":1791538230,"msg":"AWSELB证书绑定成功","product":"alb","listener":"arn:aws:elasticloadbalancing:eu-west-1:123456789012:listener/app/my-alb/abc/l1","certificate_arn":"arn:aws:acm:eu-west-1:123456789012:certificate/c1"}
+{"lv":"info","ts":1791538230,"msg":"AWSELB证书绑定成功","product":"nlb","listener":"arn:aws:elasticloadbalancing:eu-west-1:123456789012:listener/app/my-alb/abc/l1","certificate_arn":"arn:aws:acm:eu-west-1:123456789012:certificate/c1"}
+{"lv":"info","ts":1791538230,"msg":"AWSELB证书绑定幂等跳过（证书已挂载）","product":"nlb","listener":"arn:aws:elasticloadbalancing:us-east-1:123456789012:listener/net/my-nlb/xyz/l9","certificate_arn":"arn:aws:acm:us-east-1:123456789012:certificate/c1"}
+{"lv":"info","ts":1791538230,"msg":"AWS孤儿证书清理成功","certificate_arn":"arn:aws:acm:eu-central-1:123456789012:certificate/c1"}
+{"lv":"info","ts":1791538230,"msg":"AWS孤儿证书清理幂等成功（证书已不存在）","certificate_arn":"arn:aws:acm:us-east-1:123456789012:certificate/c1"}
+{"lv":"info","ts":1791538230,"msg":"AWS孤儿证书清理幂等成功（删除时已不存在）","certificate_arn":"arn:aws:acm:us-east-1:123456789012:certificate/c1"}
+{"lv":"info","ts":1791538230,"msg":"获取AWSCloudFront证书引用成功","account":"aws-main","count":1}
+{"lv":"error","ts":1791538230,"msg":"AWS 磁盘指标查询失败","disk_id":"vol-1","region":"eu-central-1","provider":"aws","error":"查询 EBS 指标失败: cloudwatch throttled"}
+{"lv":"error","ts":1791538230,"msg":"AWS NAS 指标查询失败","fs_id":"fs-1","region":"eu-central-1","provider":"aws","error":"查询 EFS StorageBytes 失败: AccessDenied: not authorized"}
+{"lv":"error","ts":1791538230,"msg":"AWS S3 指标查询失败","bucket":"bkt","provider":"aws","error":"GetBucketLocation denied"}
+{"lv":"error","ts":1791538230,"msg":"AWS S3 指标查询失败","bucket":"bkt","provider":"aws","error":"查询 S3 指标失败: AccessDenied"}
+{"lv":"info","ts":1791538231,"msg":"获取AWSCloudFront证书引用成功","account":"aws-main","count":2}
+{"lv":"info","ts":1791538231,"msg":"获取AWS ELB证书引用成功","account":"aws-main","product":"alb","count":4}
+{"lv":"info","ts":1791538231,"msg":"获取AWS ELB证书引用成功","account":"aws-main","product":"nlb","count":2}
+{"lv":"warn","ts":1791538231,"msg":"获取ELB监听器证书失败，跳过","load_balancer":"arn:aws:elasticloadbalancing:us-east-1:1:loadbalancer/app/my-alb/abc","error":"cloud api rate limited: aws alb api throttled: api error TooManyRequestsException: Rate exceeded"}
+{"lv":"warn","ts":1791538231,"msg":"获取ELB监听器证书失败，跳过","load_balancer":"arn:aws:elasticloadbalancing:us-east-1:1:loadbalancer/app/my-alb/abc","error":"cloud api rate limited: aws alb api throttled: api error TooManyRequestsException: Rate exceeded"}
+{"lv":"info","ts":1791538231,"msg":"获取AWS ELB证书引用成功","account":"aws-main","product":"alb","count":0}
+{"lv":"info","ts":1791538231,"msg":"AWSACM证书上传成功","product":"cdn","region":"us-east-1","certificate_arn":"arn:aws:acm:us-east-1:123456789012:certificate/c1"}
+{"lv":"info","ts":1791538231,"msg":"AWSACM证书上传成功","product":"alb","region":"eu-west-1","certificate_arn":"arn:aws:acm:us-east-1:123456789012:certificate/c1"}
+{"lv":"info","ts":1791538231,"msg":"AWSACM证书上传成功","product":"nlb","region":"eu-west-1","certificate_arn":"arn:aws:acm:us-east-1:123456789012:certificate/c1"}
+{"lv":"info","ts":1791538231,"msg":"AWSCloudFront证书绑定成功","distribution":"E1ABCDEF","certificate_arn":"arn:aws:acm:us-east-1:123456789012:certificate/c1"}
+{"lv":"info","ts":1791538231,"msg":"AWSCloudFront证书绑定幂等跳过（查看器证书已引用目标ARN）","distribution":"E1ABCDEF","certificate_arn":"arn:aws:acm:us-east-1:123456789012:certificate/c1"}
+{"lv":"info","ts":1791538231,"msg":"AWSCloudFront证书绑定成功","distribution":"E1ABCDEF","certificate_arn":"arn:aws:acm:us-east-1:123456789012:certificate/new"}
+{"lv":"info","ts":1791538231,"msg":"AWSELB证书绑定成功","product":"alb","listener":"arn:aws:elasticloadbalancing:eu-west-1:123456789012:listener/app/my-alb/abc/l1","certificate_arn":"arn:aws:acm:eu-west-1:123456789012:certificate/c1"}
+{"lv":"info","ts":1791538231,"msg":"AWSELB证书绑定成功","product":"nlb","listener":"arn:aws:elasticloadbalancing:eu-west-1:123456789012:listener/app/my-alb/abc/l1","certificate_arn":"arn:aws:acm:eu-west-1:123456789012:certificate/c1"}
+{"lv":"info","ts":1791538231,"msg":"AWSELB证书绑定幂等跳过（证书已挂载）","product":"nlb","listener":"arn:aws:elasticloadbalancing:us-east-1:123456789012:listener/net/my-nlb/xyz/l9","certificate_arn":"arn:aws:acm:us-east-1:123456789012:certificate/c1"}
+{"lv":"info","ts":1791538231,"msg":"AWS孤儿证书清理成功","certificate_arn":"arn:aws:acm:eu-central-1:123456789012:certificate/c1"}
+{"lv":"info","ts":1791538231,"msg":"AWS孤儿证书清理幂等成功（证书已不存在）","certificate_arn":"arn:aws:acm:us-east-1:123456789012:certificate/c1"}
+{"lv":"info","ts":1791538231,"msg":"AWS孤儿证书清理幂等成功（删除时已不存在）","certificate_arn":"arn:aws:acm:us-east-1:123456789012:certificate/c1"}
+{"lv":"info","ts":1791538231,"msg":"获取AWSCloudFront证书引用成功","account":"aws-main","count":1}
+{"lv":"error","ts":1791538231,"msg":"AWS 磁盘指标查询失败","disk_id":"vol-1","region":"eu-central-1","provider":"aws","error":"查询 EBS 指标失败: cloudwatch throttled"}
+{"lv":"error","ts":1791538231,"msg":"AWS NAS 指标查询失败","fs_id":"fs-1","region":"eu-central-1","provider":"aws","error":"查询 EFS StorageBytes 失败: AccessDenied: not authorized"}
+{"lv":"error","ts":1791538231,"msg":"AWS S3 指标查询失败","bucket":"bkt","provider":"aws","error":"GetBucketLocation denied"}
+{"lv":"error","ts":1791538231,"msg":"AWS S3 指标查询失败","bucket":"bkt","provider":"aws","error":"查询 S3 指标失败: AccessDenied"}
+{"lv":"info","ts":1791538243,"msg":"获取AWS WAF Web ACL列表成功","region":"us-east-1","count":10}
+{"lv":"info","ts":1791538243,"msg":"获取AWS EBS卷列表成功","region":"eu-west-1","count":0}
+{"lv":"info","ts":1791538247,"msg":"获取AWS WAF Web ACL列表成功","region":"us-east-1","count":10}
+{"lv":"info","ts":1791538249,"msg":"获取AWS EBS卷列表成功","region":"eu-west-1","count":0}
+{"lv":"info","ts":1791538282,"msg":"获取AWSCloudFront证书引用成功","account":"aws-main","count":2}
+{"lv":"info","ts":1791538282,"msg":"获取AWS ELB证书引用成功","account":"aws-main","product":"alb","count":4}
+{"lv":"info","ts":1791538282,"msg":"获取AWS ELB证书引用成功","account":"aws-main","product":"nlb","count":2}
+{"lv":"warn","ts":1791538282,"msg":"获取ELB监听器证书失败，跳过","load_balancer":"arn:aws:elasticloadbalancing:us-east-1:1:loadbalancer/app/my-alb/abc","error":"cloud api rate limited: aws alb api throttled: api error TooManyRequestsException: Rate exceeded"}
+{"lv":"warn","ts":1791538282,"msg":"获取ELB监听器证书失败，跳过","load_balancer":"arn:aws:elasticloadbalancing:us-east-1:1:loadbalancer/app/my-alb/abc","error":"cloud api rate limited: aws alb api throttled: api error TooManyRequestsException: Rate exceeded"}
+{"lv":"info","ts":1791538282,"msg":"获取AWS ELB证书引用成功","account":"aws-main","product":"alb","count":0}
+{"lv":"info","ts":1791538282,"msg":"AWSACM证书上传成功","product":"cdn","region":"us-east-1","certificate_arn":"arn:aws:acm:us-east-1:123456789012:certificate/c1"}
+{"lv":"info","ts":1791538282,"msg":"AWSACM证书上传成功","product":"alb","region":"eu-west-1","certificate_arn":"arn:aws:acm:us-east-1:123456789012:certificate/c1"}
+{"lv":"info","ts":1791538282,"msg":"AWSACM证书上传成功","product":"nlb","region":"eu-west-1","certificate_arn":"arn:aws:acm:us-east-1:123456789012:certificate/c1"}
+{"lv":"info","ts":1791538282,"msg":"AWSCloudFront证书绑定成功","distribution":"E1ABCDEF","certificate_arn":"arn:aws:acm:us-east-1:123456789012:certificate/c1"}
+{"lv":"info","ts":1791538282,"msg":"AWSCloudFront证书绑定幂等跳过（查看器证书已引用目标ARN）","distribution":"E1ABCDEF","certificate_arn":"arn:aws:acm:us-east-1:123456789012:certificate/c1"}
+{"lv":"info","ts":1791538282,"msg":"AWSCloudFront证书绑定成功","distribution":"E1ABCDEF","certificate_arn":"arn:aws:acm:us-east-1:123456789012:certificate/new"}
+{"lv":"info","ts":1791538282,"msg":"AWSELB证书绑定成功","product":"alb","listener":"arn:aws:elasticloadbalancing:eu-west-1:123456789012:listener/app/my-alb/abc/l1","certificate_arn":"arn:aws:acm:eu-west-1:123456789012:certificate/c1"}
+{"lv":"info","ts":1791538282,"msg":"AWSELB证书绑定成功","product":"nlb","listener":"arn:aws:elasticloadbalancing:eu-west-1:123456789012:listener/app/my-alb/abc/l1","certificate_arn":"arn:aws:acm:eu-west-1:123456789012:certificate/c1"}
+{"lv":"info","ts":1791538282,"msg":"AWSELB证书绑定幂等跳过（证书已挂载）","product":"nlb","listener":"arn:aws:elasticloadbalancing:us-east-1:123456789012:listener/net/my-nlb/xyz/l9","certificate_arn":"arn:aws:acm:us-east-1:123456789012:certificate/c1"}
+{"lv":"info","ts":1791538282,"msg":"AWS孤儿证书清理成功","certificate_arn":"arn:aws:acm:eu-central-1:123456789012:certificate/c1"}
+{"lv":"info","ts":1791538282,"msg":"AWS孤儿证书清理幂等成功（证书已不存在）","certificate_arn":"arn:aws:acm:us-east-1:123456789012:certificate/c1"}
+{"lv":"info","ts":1791538282,"msg":"AWS孤儿证书清理幂等成功（删除时已不存在）","certificate_arn":"arn:aws:acm:us-east-1:123456789012:certificate/c1"}
+{"lv":"info","ts":1791538282,"msg":"获取AWSCloudFront证书引用成功","account":"aws-main","count":1}
+{"lv":"error","ts":1791538282,"msg":"AWS 磁盘指标查询失败","disk_id":"vol-1","region":"eu-central-1","provider":"aws","error":"查询 EBS 指标失败: cloudwatch throttled"}
+{"lv":"error","ts":1791538282,"msg":"AWS NAS 指标查询失败","fs_id":"fs-1","region":"eu-central-1","provider":"aws","error":"查询 EFS StorageBytes 失败: AccessDenied: not authorized"}
+{"lv":"error","ts":1791538282,"msg":"AWS S3 指标查询失败","bucket":"bkt","provider":"aws","error":"GetBucketLocation denied"}
+{"lv":"error","ts":1791538282,"msg":"AWS S3 指标查询失败","bucket":"bkt","provider":"aws","error":"查询 S3 指标失败: AccessDenied"}
+{"lv":"info","ts":1791538294,"msg":"获取AWS WAF Web ACL列表成功","region":"us-east-1","count":10}
+{"lv":"info","ts":1791538295,"msg":"获取AWS EBS卷列表成功","region":"eu-west-1","count":0}
+{"lv":"info","ts":1791538329,"msg":"获取AWSCloudFront证书引用成功","account":"aws-main","count":2}
+{"lv":"info","ts":1791538329,"msg":"获取AWS ELB证书引用成功","account":"aws-main","product":"alb","count":4}
+{"lv":"info","ts":1791538329,"msg":"获取AWS ELB证书引用成功","account":"aws-main","product":"nlb","count":2}
+{"lv":"warn","ts":1791538329,"msg":"获取ELB监听器证书失败，跳过","load_balancer":"arn:aws:elasticloadbalancing:us-east-1:1:loadbalancer/app/my-alb/abc","error":"cloud api rate limited: aws alb api throttled: api error TooManyRequestsException: Rate exceeded"}
+{"lv":"warn","ts":1791538329,"msg":"获取ELB监听器证书失败，跳过","load_balancer":"arn:aws:elasticloadbalancing:us-east-1:1:loadbalancer/app/my-alb/abc","error":"cloud api rate limited: aws alb api throttled: api error TooManyRequestsException: Rate exceeded"}
+{"lv":"info","ts":1791538329,"msg":"获取AWS ELB证书引用成功","account":"aws-main","product":"alb","count":0}
+{"lv":"info","ts":1791538329,"msg":"AWSACM证书上传成功","product":"cdn","region":"us-east-1","certificate_arn":"arn:aws:acm:us-east-1:123456789012:certificate/c1"}
+{"lv":"info","ts":1791538329,"msg":"AWSACM证书上传成功","product":"alb","region":"eu-west-1","certificate_arn":"arn:aws:acm:us-east-1:123456789012:certificate/c1"}
+{"lv":"info","ts":1791538329,"msg":"AWSACM证书上传成功","product":"nlb","region":"eu-west-1","certificate_arn":"arn:aws:acm:us-east-1:123456789012:certificate/c1"}
+{"lv":"info","ts":1791538329,"msg":"AWSCloudFront证书绑定成功","distribution":"E1ABCDEF","certificate_arn":"arn:aws:acm:us-east-1:123456789012:certificate/c1"}
+{"lv":"info","ts":1791538329,"msg":"AWSCloudFront证书绑定幂等跳过（查看器证书已引用目标ARN）","distribution":"E1ABCDEF","certificate_arn":"arn:aws:acm:us-east-1:123456789012:certificate/c1"}
+{"lv":"info","ts":1791538329,"msg":"AWSCloudFront证书绑定成功","distribution":"E1ABCDEF","certificate_arn":"arn:aws:acm:us-east-1:123456789012:certificate/new"}
+{"lv":"info","ts":1791538329,"msg":"AWSELB证书绑定成功","product":"alb","listener":"arn:aws:elasticloadbalancing:eu-west-1:123456789012:listener/app/my-alb/abc/l1","certificate_arn":"arn:aws:acm:eu-west-1:123456789012:certificate/c1"}
+{"lv":"info","ts":1791538329,"msg":"AWSELB证书绑定成功","product":"nlb","listener":"arn:aws:elasticloadbalancing:eu-west-1:123456789012:listener/app/my-alb/abc/l1","certificate_arn":"arn:aws:acm:eu-west-1:123456789012:certificate/c1"}
+{"lv":"info","ts":1791538329,"msg":"AWSELB证书绑定幂等跳过（证书已挂载）","product":"nlb","listener":"arn:aws:elasticloadbalancing:us-east-1:123456789012:listener/net/my-nlb/xyz/l9","certificate_arn":"arn:aws:acm:us-east-1:123456789012:certificate/c1"}
+{"lv":"info","ts":1791538329,"msg":"AWS孤儿证书清理成功","certificate_arn":"arn:aws:acm:eu-central-1:123456789012:certificate/c1"}
+{"lv":"info","ts":1791538329,"msg":"AWS孤儿证书清理幂等成功（证书已不存在）","certificate_arn":"arn:aws:acm:us-east-1:123456789012:certificate/c1"}
+{"lv":"info","ts":1791538329,"msg":"AWS孤儿证书清理幂等成功（删除时已不存在）","certificate_arn":"arn:aws:acm:us-east-1:123456789012:certificate/c1"}
+{"lv":"info","ts":1791538329,"msg":"获取AWSCloudFront证书引用成功","account":"aws-main","count":1}
+{"lv":"error","ts":1791538329,"msg":"AWS 磁盘指标查询失败","disk_id":"vol-1","region":"eu-central-1","provider":"aws","error":"查询 EBS 指标失败: cloudwatch throttled"}
+{"lv":"error","ts":1791538329,"msg":"AWS NAS 指标查询失败","fs_id":"fs-1","region":"eu-central-1","provider":"aws","error":"查询 EFS StorageBytes 失败: AccessDenied: not authorized"}
+{"lv":"error","ts":1791538329,"msg":"AWS S3 指标查询失败","bucket":"bkt","provider":"aws","error":"GetBucketLocation denied"}
+{"lv":"error","ts":1791538329,"msg":"AWS S3 指标查询失败","bucket":"bkt","provider":"aws","error":"查询 S3 指标失败: AccessDenied"}
+{"lv":"info","ts":1791538341,"msg":"获取AWS WAF Web ACL列表成功","region":"us-east-1","count":10}
+{"lv":"info","ts":1791538342,"msg":"获取AWS EBS卷列表成功","region":"eu-west-1","count":0}

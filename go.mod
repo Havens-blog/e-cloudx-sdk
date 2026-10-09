@@ -1,0 +1,60 @@
+module github.com/Havens-blog/e-cloudx-sdk
+
+go 1.21
+
+require (
+	github.com/alibabacloud-go/alikafka-20190916/v3 v3.16.0
+	github.com/alibabacloud-go/darabonba-openapi/v2 v2.1.13
+	github.com/alibabacloud-go/elasticsearch-20170613/v4 v4.1.0
+	github.com/alibabacloud-go/nas-20170626/v3 v3.5.2
+	github.com/alibabacloud-go/tea v1.4.0
+	github.com/aliyun/alibaba-cloud-sdk-go v1.63.107
+	github.com/aliyun/aliyun-log-go-sdk v0.1.127
+	github.com/aliyun/aliyun-oss-go-sdk v3.0.2+incompatible
+	github.com/aws/aws-sdk-go-v2 v1.41.5
+	github.com/aws/aws-sdk-go-v2/config v1.32.7
+	github.com/aws/aws-sdk-go-v2/credentials v1.19.7
+	github.com/aws/aws-sdk-go-v2/service/acm v1.38.0
+	github.com/aws/aws-sdk-go-v2/service/cloudfront v1.60.2
+	github.com/aws/aws-sdk-go-v2/service/cloudwatch v1.45.2
+	github.com/aws/aws-sdk-go-v2/service/costexplorer v1.63.4
+	github.com/aws/aws-sdk-go-v2/service/docdb v1.48.9
+	github.com/aws/aws-sdk-go-v2/service/ec2 v1.281.0
+	github.com/aws/aws-sdk-go-v2/service/efs v1.41.10
+	github.com/aws/aws-sdk-go-v2/service/elasticache v1.51.9
+	github.com/aws/aws-sdk-go-v2/service/elasticloadbalancingv2 v1.43.8
+	github.com/aws/aws-sdk-go-v2/service/iam v1.50.2
+	github.com/aws/aws-sdk-go-v2/service/kafka v1.46.7
+	github.com/aws/aws-sdk-go-v2/service/opensearch v1.57.1
+	github.com/aws/aws-sdk-go-v2/service/rds v1.114.0
+	github.com/aws/aws-sdk-go-v2/service/route53 v1.62.5
+	github.com/aws/aws-sdk-go-v2/service/s3 v1.96.0
+	github.com/aws/aws-sdk-go-v2/service/wafv2 v1.71.1
+	github.com/aws/smithy-go v1.24.2
+	github.com/huaweicloud/huaweicloud-sdk-go-obs v3.25.9+incompatible
+	github.com/huaweicloud/huaweicloud-sdk-go-v3 v0.1.213
+	github.com/tencentcloud/tencentcloud-sdk-go/tencentcloud/billing v1.3.42
+	github.com/tencentcloud/tencentcloud-sdk-go/tencentcloud/cam v1.1.48
+	github.com/tencentcloud/tencentcloud-sdk-go/tencentcloud/cbs v1.3.40
+	github.com/tencentcloud/tencentcloud-sdk-go/tencentcloud/cdb v1.3.40
+	github.com/tencentcloud/tencentcloud-sdk-go/tencentcloud/cdn v1.3.36
+	github.com/tencentcloud/tencentcloud-sdk-go/tencentcloud/cfs v1.3.38
+	github.com/tencentcloud/tencentcloud-sdk-go/tencentcloud/ckafka v1.3.16
+	github.com/tencentcloud/tencentcloud-sdk-go/tencentcloud/clb v1.1.55
+	github.com/tencentcloud/tencentcloud-sdk-go/tencentcloud/cls v1.3.54
+	github.com/tencentcloud/tencentcloud-sdk-go/tencentcloud/common v1.3.182
+	github.com/tencentcloud/tencentcloud-sdk-go/tencentcloud/cvm v1.3.30
+	github.com/tencentcloud/tencentcloud-sdk-go/tencentcloud/dnspod v1.3.64
+	github.com/tencentcloud/tencentcloud-sdk-go/tencentcloud/es v1.3.44
+	github.com/tencentcloud/tencentcloud-sdk-go/tencentcloud/mongodb v1.3.40
+	github.com/tencentcloud/tencentcloud-sdk-go/tencentcloud/monitor v1.3.182
+	github.com/tencentcloud/tencentcloud-sdk-go/tencentcloud/redis v1.3.36
+	github.com/tencentcloud/tencentcloud-sdk-go/tencentcloud/teo v1.3.82
+	github.com/tencentcloud/tencentcloud-sdk-go/tencentcloud/vpc v1.3.40
+	github.com/tencentcloud/tencentcloud-sdk-go/tencentcloud/waf v1.3.52
+	github.com/tencentyun/cos-go-sdk-v5 v0.7.72
+	github.com/volcengine/ve-tos-golang-sdk/v2 v2.9.0
+	github.com/volcengine/volc-sdk-golang v1.0.257
+	github.com/volcengine/volcengine-go-sdk v1.2.9
+	go.uber.org/zap v1.27.0
+)
