@@ -12,7 +12,7 @@ func TestIsAttachmentAssetType(t *testing.T) {
 			t.Errorf("%s 应为附属资源", at)
 		}
 	}
-	entities := []string{"ecs", "rds", "vpc", "eip", "lb", "cdn", "waf", "oss", "nas", "kafka", "elasticsearch", "redis", "mongodb", "dns"}
+	entities := []string{"ecs", "rds", "vpc", "eip", "lb", "cdn", "waf", "ddos", "oss", "nas", "kafka", "elasticsearch", "redis", "mongodb", "dns"}
 	for _, at := range entities {
 		if IsAttachmentAssetType(at) {
 			t.Errorf("%s 不应为附属资源", at)
@@ -37,6 +37,7 @@ func TestAttachmentModelUIDPattern(t *testing.T) {
 	noMatch := []string{
 		"aliyun_ecs", "volcano_ecs", "aws_rds", "aliyun_oss",
 		"aliyun_elasticsearch", "volcengine_mongodb", "cloud_vm", "ecs",
+		"aliyun_ddos", "tencent_ddos", "cloud_ddos",
 	}
 	for _, uid := range noMatch {
 		if re.MatchString(uid) {

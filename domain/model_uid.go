@@ -56,6 +56,7 @@ var modelUIDEntries = []modelUIDEntry{
 	{"lb", ModelUIDPattern{Generics: []string{"cloud_lb", "cloud_slb", "cloud_alb", "cloud_nlb"}, Suffixes: []string{"lb", "slb", "alb", "nlb", "elb", "clb"}, BareNames: []string{"lb", "slb", "alb", "nlb"}}},
 	{"cdn", ModelUIDPattern{Generics: []string{"cloud_cdn"}, Suffixes: []string{"cdn"}, BareNames: []string{"cdn"}}},
 	{"waf", ModelUIDPattern{Generics: []string{"cloud_waf"}, Suffixes: []string{"waf"}, BareNames: []string{"waf"}}},
+	{"ddos", ModelUIDPattern{Generics: []string{"cloud_ddos"}, Suffixes: []string{"ddos"}, BareNames: []string{"ddos"}}},
 	{"image", ModelUIDPattern{Generics: []string{"cloud_image"}, Suffixes: []string{"image"}, BareNames: []string{"image"}}},
 	{"nas", ModelUIDPattern{Generics: []string{"cloud_nas"}, Suffixes: []string{"nas"}, BareNames: []string{"nas"}}},
 	{"oss", ModelUIDPattern{Generics: []string{"cloud_oss"}, Suffixes: []string{"oss"}, BareNames: []string{"oss"}}},

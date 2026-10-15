@@ -1,4 +1,4 @@
-﻿package aliyun
+package aliyun
 
 import (
 	"context"
@@ -35,6 +35,7 @@ type Adapter struct {
 	lb            *LBAdapter
 	cdn           *CDNAdapter
 	waf           *WAFAdapter
+	ddos          cloudx.DDOSAdapter // DDoS防护(高防/原生防护);实现见 ddos.go
 	nas           *NASAdapter
 	oss           *OSSAdapter
 	kafka         *KafkaAdapter
@@ -183,6 +184,14 @@ func NewAdapter(account *domain.CloudAccount) (*Adapter, error) {
 
 	// 创建WAF适配器
 	adapter.waf = NewWAFAdapter(
+		account.AccessKeyID,
+		account.AccessKeySecret,
+		defaultRegion,
+		logger,
+	)
+
+	// 创建DDoS防护适配器(高防IP ddoscoo + DDoS原生防护 ddosbgp)
+	adapter.ddos = NewDDOSAdapter(
 		account.AccessKeyID,
 		account.AccessKeySecret,
 		defaultRegion,
@@ -346,6 +355,11 @@ func (a *Adapter) CDN() cloudx.CDNAdapter {
 // WAF 获取WAF适配器
 func (a *Adapter) WAF() cloudx.WAFAdapter {
 	return a.waf
+}
+
+// DDoS 获取DDoS防护适配器
+func (a *Adapter) DDOS() cloudx.DDOSAdapter {
+	return a.ddos
 }
 
 // DNS 获取DNS适配器

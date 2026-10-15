@@ -13,7 +13,7 @@ var DefaultSyncAssetTypes = []string{
 	// 数据库
 	"rds", "redis", "mongodb",
 	// 网络（dns 是账号级全局资产）
-	"vpc", "vswitch", "eip", "lb", "cdn", "waf", "dns",
+	"vpc", "vswitch", "eip", "lb", "cdn", "waf", "ddos", "dns",
 	// 存储
 	"nas", "oss",
 	// 中间件
@@ -26,7 +26,7 @@ var DefaultSyncAssetTypes = []string{
 var (
 	ComputeAssetTypes    = []string{"ecs", "disk", "snapshot", "security_group", "image"}
 	DatabaseAssetTypes   = []string{"rds", "redis", "mongodb"}
-	NetworkAssetTypes    = []string{"vpc", "vswitch", "eip", "eni", "lb", "cdn", "waf", "dns"}
+	NetworkAssetTypes    = []string{"vpc", "vswitch", "eip", "eni", "lb", "cdn", "waf", "ddos", "dns"}
 	StorageAssetTypes    = []string{"nas", "oss"}
 	MiddlewareAssetTypes = []string{"kafka", "elasticsearch"}
 )
@@ -41,7 +41,7 @@ var DefaultCMDBSyncAssetTypes = []string{
 	// 数据库
 	"rds", "redis", "mongodb",
 	// 网络
-	"vpc", "eip", "lb", "cdn", "waf", "eni", "dns",
+	"vpc", "eip", "lb", "cdn", "waf", "ddos", "eni", "dns",
 	// 存储
 	"nas", "oss",
 }

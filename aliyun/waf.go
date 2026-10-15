@@ -1,4 +1,4 @@
-﻿package aliyun
+package aliyun
 
 import (
 	"context"
@@ -87,6 +87,10 @@ type describeDomainDetailResponse struct {
 	Status    int             `json:"Status"`   // 1=正常
 	Listen    *listenDetail   `json:"Listen"`   // 监听配置
 	Redirect  *redirectDetail `json:"Redirect"` // 回源配置（包含源站地址）
+	// 企业资源组 ID(实盘 probe 确认 DescribeDomainDetail 响应包含该字段,
+	// 见 waf_source_probe_manual_test.go 原始响应打印)。ProjectID 无实盘信源,
+	// 保持不填,不硬造。
+	ResourceManagerResourceGroupId string `json:"ResourceManagerResourceGroupId"`
 }
 
 type listenDetail struct {
@@ -212,23 +216,7 @@ func (a *WAFAdapter) ListInstancesWithFilter(ctx context.Context, region string,
 					elog.String("domain", realDomain),
 					elog.FieldErr(err))
 			} else if domainDetail != nil {
-				if domainDetail.Redirect != nil {
-					// 优先用 AllBackends（扁平列表），回退到 Backends 提取
-					if len(domainDetail.Redirect.AllBackends) > 0 {
-						inst.SourceIPs = domainDetail.Redirect.AllBackends
-					} else if len(domainDetail.Redirect.BackendList) > 0 {
-						inst.SourceIPs = domainDetail.Redirect.BackendList
-					} else {
-						for _, b := range domainDetail.Redirect.Backends {
-							if b.Backend != "" {
-								inst.SourceIPs = append(inst.SourceIPs, b.Backend)
-							}
-						}
-					}
-				}
-				if domainDetail.Cname != "" {
-					inst.Cname = domainDetail.Cname
-				}
+				mergeDomainDetailEnrich(&inst, domainDetail)
 			}
 			allInstances = append(allInstances, inst)
 		}
@@ -277,6 +265,36 @@ func (a *WAFAdapter) convertResourceToInstance(res defenseResource, region strin
 		// (tag.go)走 ECS DescribeTags,只能按 ECS 资源类型查询,无法查 WAF 域名标签。
 		// 为避免语义错配与失控 N+1 开销,留空 map,不硬造值。
 		Tags: make(map[string]string),
+	}
+}
+
+// mergeDomainDetailEnrich 用 DescribeDomainDetail 的详情补充转换结果(纯函数便于单测):
+// 源站(优先 AllBackends → BackendList → Backends 逐条)、Cname、企业资源组 ID。
+// 各字段取不到时保持原值,不做推断。
+func mergeDomainDetailEnrich(inst *types.WAFInstance, detail *describeDomainDetailResponse) {
+	if inst == nil || detail == nil {
+		return
+	}
+	if detail.Redirect != nil {
+		// 优先用 AllBackends（扁平列表），回退到 Backends 提取
+		if len(detail.Redirect.AllBackends) > 0 {
+			inst.SourceIPs = detail.Redirect.AllBackends
+		} else if len(detail.Redirect.BackendList) > 0 {
+			inst.SourceIPs = detail.Redirect.BackendList
+		} else {
+			for _, b := range detail.Redirect.Backends {
+				if b.Backend != "" {
+					inst.SourceIPs = append(inst.SourceIPs, b.Backend)
+				}
+			}
+		}
+	}
+	if detail.Cname != "" {
+		inst.Cname = detail.Cname
+	}
+	// 资源组:probe 实证字段原样透传;空值保留调用方默认(不硬造)
+	if detail.ResourceManagerResourceGroupId != "" {
+		inst.ResourceGroupID = detail.ResourceManagerResourceGroupId
 	}
 }
 

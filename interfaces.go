@@ -1,4 +1,4 @@
-﻿package cloudx
+package cloudx
 
 import (
 	"context"
@@ -64,6 +64,10 @@ type CloudAdapter interface {
 
 	// WAF 获取WAF适配器 (Web应用防火墙)
 	WAF() WAFAdapter
+
+	// DDoS 获取DDoS防护适配器 (高防IP/高防包/DDoS原生防护等)
+	// 厂商 SDK 未提供实例枚举能力时返回 nil（同步执行器按"该厂商未接入"优雅跳过）。
+	DDOS() DDOSAdapter
 
 	// DNS 获取DNS适配器 (域名解析管理)
 	DNS() DNSAdapter
@@ -723,6 +727,30 @@ type WAFAdapter interface {
 
 	// ListInstancesWithFilter 带过滤条件获取实例列表
 	ListInstancesWithFilter(ctx context.Context, region string, filter *types.WAFInstanceFilter) ([]types.WAFInstance, error)
+}
+
+// ============================================================================
+// DDOSAdapter - DDoS防护适配器接口
+// ============================================================================
+
+// DDOSAdapter DDoS防护适配器接口
+// 用于阿里云DDoS原生防护/DDoS高防、腾讯云高防IP/高防包、华为云Anti-DDoS、
+// AWS Shield、火山引擎高防等
+type DDOSAdapter interface {
+	// ListInstances 获取DDoS防护实例列表
+	ListInstances(ctx context.Context, region string) ([]types.DDOSInstance, error)
+
+	// GetInstance 获取单个DDoS防护实例详情
+	GetInstance(ctx context.Context, region, instanceID string) (*types.DDOSInstance, error)
+
+	// ListInstancesByIDs 批量获取DDoS防护实例
+	ListInstancesByIDs(ctx context.Context, region string, instanceIDs []string) ([]types.DDOSInstance, error)
+
+	// GetInstanceStatus 获取实例状态
+	GetInstanceStatus(ctx context.Context, region, instanceID string) (string, error)
+
+	// ListInstancesWithFilter 带过滤条件获取实例列表
+	ListInstancesWithFilter(ctx context.Context, region string, filter *types.DDOSInstanceFilter) ([]types.DDOSInstance, error)
 }
 
 // ============================================================================
