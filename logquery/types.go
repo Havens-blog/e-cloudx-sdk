@@ -1,4 +1,4 @@
-﻿// Package logquery 多云统一日志查询共享域(Phase 1,plan.md §4.1/§4.2)。
+// Package logquery 多云统一日志查询共享域(Phase 1,plan.md §4.1/§4.2)。
 //
 // 设计要点(ADR D1~D6):
 //   - 采集适配与字段归一分离:Provider 只负责"把原始日志拿来",映射层负责
@@ -33,10 +33,15 @@ const (
 	// LogTypeAccess 源站访问日志(自采 nginx/gateway 实例访问日志,非负载均衡
 	// 产品日志;火山类映射复用 SLBLogEntry schema)。
 	LogTypeAccess LogType = "access"
+	// LogTypeApp 应用业务日志(自采 java 服务 logback/log4j 业务流,SLS
+	// logstore 命名约定 <service>-business,每 store 单服务)。字段
+	// service/level/message/timestamp 为 RCA 服务间消费的稳定契约
+	// (OpsAgent 经 e-cam 联邦取错误日志做根因分析)。
+	LogTypeApp LogType = "app"
 )
 
 // AllLogTypes 全部日志类型(注册/校验用)。
-var AllLogTypes = []LogType{LogTypeCDN, LogTypeWAF, LogTypeSLB, LogTypeAccess}
+var AllLogTypes = []LogType{LogTypeCDN, LogTypeWAF, LogTypeSLB, LogTypeAccess, LogTypeApp}
 
 // IsValidLogType 校验日志类型合法值。
 func IsValidLogType(t LogType) bool {
@@ -142,6 +147,33 @@ func (e *SLBLogEntry) GetTimestamp() int64 { return e.Timestamp }
 
 // GetMeta 实现 LogEntry。
 func (e *SLBLogEntry) GetMeta() LogMeta { return e.Meta }
+
+// AppLogEntry 应用业务日志统一模型(自采 java 业务流,<service>-business
+// store 单服务一 store;service/level/message/timestamp 为 RCA 跨服务
+// 消费契约,缺失如实留空不编造)。
+type AppLogEntry struct {
+	Meta      LogMeta        `json:"meta"`
+	Timestamp int64          `json:"timestamp"` // Unix ms UTC
+	Service   string         `json:"service"`   // 服务名(document_type 去 -business 后缀)
+	Level     string         `json:"level"`     // 归一小写: error / warn / info / debug / ""
+	Message   string         `json:"message"`   // 日志正文(msg 列;空回退原始行 message 列)
+	Exception string         `json:"exception"` // 异常堆栈(ERROR 行常见;可为空)
+	TraceID   string         `json:"trace_id"`  // 链路 ID(业务埋点,可为空)
+	Raw       map[string]any `json:"raw"`       // pod/线程/location 等全量原始字段
+}
+
+// GetTimestamp 实现 LogEntry。
+func (e *AppLogEntry) GetTimestamp() int64 { return e.Timestamp }
+
+// GetMeta 实现 LogEntry。
+func (e *AppLogEntry) GetMeta() LogMeta { return e.Meta }
+
+// NormalizeLevel 应用日志级别归一(去空白 + 小写;空保持空,不占位编造)。
+// 实测取值 INFO/WARN/ERROR/DEBUG(java logback 惯例),归一后供筛选与
+// RCA 消费方按统一小写语义比较。
+func NormalizeLevel(s string) string {
+	return strings.ToLower(strings.TrimSpace(s))
+}
 
 // ---------------------------------------------------------------------
 // 归一化工具(映射层共用;单测覆盖,ADR D5/D6)
