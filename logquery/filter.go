@@ -142,6 +142,17 @@ func entryFieldValue(e LogEntry, field string) (string, bool) {
 		case "tls_protocol":
 			return v.TLSProtocol, true
 		}
+	case *AppLogEntry:
+		switch field {
+		case "service":
+			return v.Service, true
+		case "level":
+			return v.Level, true
+		case "message":
+			return v.Message, true
+		case "trace_id":
+			return v.TraceID, true
+		}
 	}
 	return "", false
 }

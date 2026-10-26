@@ -1,4 +1,4 @@
-﻿package aws
+package aws
 
 import (
 	"context"
@@ -35,6 +35,7 @@ type Adapter struct {
 	lb            *LBAdapter
 	cdn           *CDNAdapter
 	waf           *WAFAdapter
+	ddos          cloudx.DDOSAdapter // DDoS防护(Shield);实现见 ddos.go
 	nas           cloudx.NASAdapter
 	oss           cloudx.OSSAdapter
 	kafka         *KafkaAdapter
@@ -112,6 +113,9 @@ func NewAdapter(account *domain.CloudAccount) (*Adapter, error) {
 
 	// 创建WAF适配器 (WAFv2)
 	adapter.waf = NewWAFAdapter(account.AccessKeyID, account.AccessKeySecret, defaultRegion, logger)
+
+	// 创建DDoS防护适配器 (Shield,全局服务)
+	adapter.ddos = NewDDOSAdapter(account.AccessKeyID, account.AccessKeySecret, defaultRegion, logger)
 
 	// 创建NAS适配器 (EFS)
 	adapter.nas = NewEFSAdapter(account.AccessKeyID, account.AccessKeySecret, defaultRegion, logger)
@@ -222,6 +226,11 @@ func (a *Adapter) CDN() cloudx.CDNAdapter {
 // WAF 获取WAF适配器 (AWS WAFv2)
 func (a *Adapter) WAF() cloudx.WAFAdapter {
 	return a.waf
+}
+
+// DDoS 获取DDoS防护适配器 (AWS Shield)
+func (a *Adapter) DDOS() cloudx.DDOSAdapter {
+	return a.ddos
 }
 
 // DNS 获取DNS适配器

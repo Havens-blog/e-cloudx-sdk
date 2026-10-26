@@ -8,7 +8,7 @@ import (
 // allShorts 注册表应覆盖的全部资源类型短名。
 var allShorts = []string{
 	"ecs", "disk", "snapshot", "security_group", "rds", "redis", "mongodb",
-	"vpc", "eip", "eni", "vswitch", "lb", "cdn", "waf", "image",
+	"vpc", "eip", "eni", "vswitch", "lb", "cdn", "waf", "ddos", "image",
 	"nas", "oss", "kafka", "elasticsearch",
 }
 
@@ -22,7 +22,7 @@ func TestModelUIDPatternFor_AllRegistered(t *testing.T) {
 
 func TestModelUIDPatternFor_Aliases(t *testing.T) {
 	cases := []struct {
-		key             string
+		key              string
 		generics, suffix []string
 	}{
 		{"ecs", []string{"cloud_vm"}, []string{"ecs"}},
@@ -44,6 +44,7 @@ func TestModelUIDPatternFor_Aliases(t *testing.T) {
 		{"cdn", []string{"cloud_cdn"}, []string{"cdn"}},
 		{"cloud_cdn", []string{"cloud_cdn"}, []string{"cdn"}},
 		{"waf", []string{"cloud_waf"}, []string{"waf"}},
+		{"ddos", []string{"cloud_ddos"}, []string{"ddos"}},
 		{"eni", []string{"cloud_eni"}, []string{"eni"}},
 		{"image", []string{"cloud_image"}, []string{"image"}},
 	}
@@ -87,6 +88,8 @@ func TestExtractAssetType(t *testing.T) {
 		{"volcengine_elasticsearch", "elasticsearch"},
 		{"huawei_mongodb", "mongodb"},
 		{"aws_rds", "rds"},
+		{"aliyun_ddos", "ddos"},
+		{"cloud_ddos", "ddos"},
 		// lb 家族返回字面后缀（与旧 web 版一致：aliyun_slb→"slb"，仅通用名归并 lb）
 		{"aliyun_slb", "slb"},
 		{"aliyun_alb", "alb"},

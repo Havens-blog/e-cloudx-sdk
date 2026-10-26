@@ -1,4 +1,4 @@
-﻿package tencent
+package tencent
 
 import (
 	"context"
@@ -103,10 +103,15 @@ func (a *WAFAdapter) ListInstancesWithFilter(ctx context.Context, region string,
 	// WAF API 只支持 ap-guangzhou 地域，固定使用该 region
 	wafDomains, err := a.listWAFDomains(ctx, "ap-guangzhou", filter)
 	if err != nil {
-		a.logger.Warn("获取腾讯云WAF防护域名失败", elog.FieldErr(err))
-	} else {
-		allInstances = append(allInstances, wafDomains...)
+		// WAF 域名列表失败必须向上抛错:本方法的调用方(同步执行器)只拿到
+		// 空/EO 子集列表时,会按 diff "云端已无这些资产" 把本地已存的全部
+		// WAF 域名行整批删除(限流/瞬时失败时尤其常见),导致列表时有时无/
+		// 缺行。改为整轮 WAF 同步失败跳过(不删不写),待下一轮恢复。
+		// EO 站点失败保持软降级:EO 行 attributes.region 为空,不进入地域
+		// diff 的删除范围,软失败不会造成误删。
+		return nil, fmt.Errorf("获取腾讯云WAF防护域名列表失败: %w", err)
 	}
+	allInstances = append(allInstances, wafDomains...)
 
 	// 2. 查询 EdgeOne(EO) 站点（DescribeZones）— 全局服务
 	eoZones, err := a.listEOZones(ctx, filter)

@@ -1,4 +1,4 @@
-﻿package volcano
+package volcano
 
 import (
 	"context"
@@ -37,6 +37,7 @@ type Adapter struct {
 	lb            *LBAdapter
 	cdn           *CDNAdapter
 	waf           *WAFAdapter
+	ddos          cloudx.DDOSAdapter // DDoS防护:volcengine-go-sdk 未打包高防实例枚举API,暂不接入(nil)
 	nas           *NASAdapter
 	tos           *TOSAdapter
 	kafka         *KafkaAdapter
@@ -224,6 +225,14 @@ func (a *Adapter) CDN() cloudx.CDNAdapter {
 // WAF 获取WAF适配器 (火山引擎 WAF)
 func (a *Adapter) WAF() cloudx.WAFAdapter {
 	return a.waf
+}
+
+// DDoS 获取DDoS防护适配器。
+// 火山引擎高防(AdvDefence):当前 pin 的 volcengine-go-sdk 仅打包了转发规则/攻击统计
+// 等 7 个 API,不含高防实例枚举接口,无法列出实例 → 返回 nil 由同步执行器跳过。
+// 接入前提:SDK 升级至打包 AdvDefence 实例列表 API 的版本后补实现。
+func (a *Adapter) DDOS() cloudx.DDOSAdapter {
+	return a.ddos
 }
 
 // DNS 获取DNS适配器

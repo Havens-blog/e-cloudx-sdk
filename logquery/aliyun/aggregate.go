@@ -24,6 +24,10 @@ func aggregateTopNExpr(kind mapperKind) string {
 	case kindALB:
 		return "http_host"
 	default:
+		// kindApp 无默认 TopN 维度:document_type(服务列)索引 doc_value=false,
+		// SQL group by 恒 null(实测),诚实跳过 TopN;趋势分桶与精确总数
+		// (count 指标 + 检索段过滤)不受影响。自定义维度按 dimensionExpr 的
+		// filterOnlyDims 校验显式拒绝。
 		return "" // kindWAF3 访问流无规则维度
 	}
 }

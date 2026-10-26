@@ -1,4 +1,4 @@
-﻿// 阿里云字段筛选/分组维度/聚合指标的列映射与检索段编译。
+// 阿里云字段筛选/分组维度/聚合指标的列映射与检索段编译。
 // 归一化字段 → SLS 原始列(mapper.go 同源;只收录单一列、无链式回退的字段,
 // 保证 eq/前缀/包含语义可精确下推)。缓存命中/边缘节点等跨字段归一字段
 // 不在列映射内 — 明细由 EntryMatches 兜底,聚合下推时该字段(源)显式跳过。
@@ -50,6 +50,22 @@ var dimColumnExpr = map[mapperKind]map[string]string{
 		"uri": "request_uri", "client_ip": "client_ip", "upstream_status": "upstream_status",
 		"url": "request_uri", "bytes_sent": "body_bytes_sent", "tls_protocol": "ssl_protocol",
 	},
+	kindApp: {
+		// 应用业务流(2026-10 jlc-prod-log 实测):level 值大小写归一在映射层
+		// (NormalizeLevel),检索下推依赖 SLS logtail 文本索引默认大小写不敏感;
+		// 明细层 EntryMatches 用归一值兜底,索引异常时少召回不误召回。
+		// 注意:document_type/trace_id 的索引 doc_value=false(SQL 读恒 null,
+		// 实测 group by 全 null),仅作检索过滤列 —— 分组维度见 filterOnlyDims。
+		"service": "document_type", "level": "level", "trace_id": "trace_id",
+	},
+}
+
+// filterOnlyDims 仅可作检索过滤、不可作 SQL 分组维度的字段(kindApp 实测:
+// document_type/trace_id 索引 doc_value=false,全文检索能命中但 select/group
+// by 恒 null —— 聚合按 null 分组是静默错数据,必须在维度层显式拒绝)。
+// 过滤下推走 SLS 检索语法(全文索引即可),不受 doc_value 影响。
+var filterOnlyDims = map[mapperKind]map[string]bool{
+	kindApp: {"service": true, "trace_id": true},
 }
 
 // dimGroupExpr 仅分组维度表达式(不可作检索下推列,聚合 TopN 专用):
@@ -128,6 +144,8 @@ var metricExpr = map[mapperKind]map[string]string{
 	// kindWAF3/kindAkamaiWAF:无 latency/bytes 指标列,仅 count
 	kindWAF3:      {"count": "count(1)"},
 	kindAkamaiWAF: {"count": "count(1)"},
+	// kindApp 业务日志无延迟/字节量纲,仅 count(RCA GetLogCount 走此路)
+	kindApp: {"count": "count(1)"},
 }
 
 // filterSearchPart 编译字段筛选为 SLS 检索段(多条件 AND;返回 false =
@@ -142,28 +160,67 @@ func filterSearchPart(kind mapperKind, filters []logquery.FieldFilter) (string, 
 		if !ok || f.Value == "" {
 			return "", false
 		}
-		// eq 数字字面量不引号(数值检索更稳);其余统一短语引号(规避
-		// SLS 词法空格/冒号等),末端追加 SLS 通配符(*val* / val*)。
-		val := f.Value
-		if f.Op == "contains" {
-			val = "*" + val + "*"
-		} else if f.Op == "prefix" {
-			val = val + "*"
+		vals, ok := pushdownValueTerms(kind, f)
+		if !ok {
+			return "", false
 		}
-		if !numericLiteral(val) || strings.ContainsAny(val, "*") {
-			val = `"` + strings.NewReplacer(`\`, `\\`, `"`, `\"`).Replace(val) + `"`
+		// 多变体 OR 组必须整体加括号:and 优先级高于 or,裸拼会把
+		// `a or b and c` 解析成 a or (b and c),静默改变语义。
+		terms := make([]string, 0, len(vals))
+		for _, v := range vals {
+			terms = append(terms, col+": "+v)
+		}
+		joined := strings.Join(terms, " or ")
+		if len(terms) > 1 {
+			joined = "(" + joined + ")"
 		}
 		switch f.Op {
 		case "neq":
-			parts = append(parts, "not "+col+": "+val)
+			parts = append(parts, "not "+joined)
 		default: // eq / contains / prefix
-			parts = append(parts, col+": "+val)
+			parts = append(parts, joined)
 		}
 	}
 	if len(parts) == 0 {
 		return "", true
 	}
 	return "(" + strings.Join(parts, " and ") + ")", true
+}
+
+// pushdownValueTerms 把一个筛选值编译为 SLS 检索短语(清单,多值 OR)。
+// 默认单值:数字字面量不加引号,其余短语引号(规避 SLS 词法空格/冒号),
+// contain 追加通配 *v* / prefix 追加 v*。
+// kindApp 的 level 是大小写敏感索引上的归一字段:映射层 NormalizeLevel 把
+// ERROR→error,消费方按归一值过滤,但 SLS 索引里存的是 logback 大写水位,
+// 实测 `level: "error"` 命中 0 条而明细层过滤命中 1614 条,聚合曾静默
+// 少算。eq/neq 下推同时尝试原始值与大小写变体(去重),命中面与明细层
+// EntryMatches 的归一比较对齐。
+func pushdownValueTerms(kind mapperKind, f logquery.FieldFilter) ([]string, bool) {
+	quote := func(v string) string {
+		if numericLiteral(v) && !strings.ContainsAny(v, "*") {
+			return v
+		}
+		return `"` + strings.NewReplacer(`\`, `\\`, `"`, `\"`).Replace(v) + `"`
+	}
+	if kind == kindApp && f.Field == "level" && (f.Op == "" || f.Op == "eq" || f.Op == "neq") {
+		seen := map[string]bool{}
+		var out []string
+		for _, v := range []string{f.Value, strings.ToUpper(f.Value), strings.ToLower(f.Value)} {
+			if v == "" || seen[v] {
+				continue
+			}
+			seen[v] = true
+			out = append(out, quote(v))
+		}
+		return out, true
+	}
+	val := f.Value
+	if f.Op == "contains" {
+		val = "*" + val + "*"
+	} else if f.Op == "prefix" {
+		val = val + "*"
+	}
+	return []string{quote(val)}, true
 }
 
 // numericLiteral 数字字面量(含小数/负号)不加引号,SLS 数值检索更稳。
@@ -199,6 +256,11 @@ func dimensionExpr(kind mapperKind, dim string) (string, bool) {
 		return "", true
 	}
 	if expr, ok := dimColumnExpr[kind][dim]; ok {
+		// 仅筛选不可分组字段:SQL 读不到列值(doc_value=false),分组恒 null,
+		// 显式拒绝让上层标注 TopNSkipReason,不静默给 null 组。
+		if filterOnlyDims[kind][dim] {
+			return "", false
+		}
 		return expr, true
 	}
 	if expr, ok := dimGroupExpr[kind][dim]; ok {

@@ -1,4 +1,4 @@
-﻿// 可聚合字段探测:分组聚合维度白名单。SLS 聚合硬约束 = 分组列必须开过 KV
+// 可聚合字段探测:分组聚合维度白名单。SLS 聚合硬约束 = 分组列必须开过 KV
 // 分析索引(GetIndex → Index.Keys),否则 Group By 报 400 "列不存在或非索引"。
 // 维度下拉此前展示 /types 全量字段字典,用户盲选未开索引字段反复撞
 // TopNSkipReason。这里对每日志类型求各 logstore 索引并集,产出真正可聚合
@@ -109,6 +109,11 @@ func aggregatableFieldsFromIndexes(logType logquery.LogType, indexed map[string]
 		}
 		for field, col := range dimColumnExpr[src.kind] {
 			if seen[field] {
+				continue
+			}
+			// 仅筛选不可分组字段(doc_value=false,group by 恒 null):不进
+			// 可聚合白名单,避免用户盲选后撞 null 组。
+			if filterOnlyDims[src.kind][field] {
 				continue
 			}
 			if identifierLike(col) && !indexed[col] {

@@ -1,4 +1,4 @@
-﻿// Package aliyun 阿里云日志查询 provider(Phase 1)。
+// Package aliyun 阿里云日志查询 provider(Phase 1)。
 //
 // Phase 0 实测(source-status.md):阿里侧全部日志已汇聚 SLS,无需碰
 // Kafka/日志文件包;每账号 8 类源按固定 catalog 查询:
@@ -29,6 +29,7 @@ func init() {
 	logquery.RegisterProvider(domain.CloudProviderAliyun, logquery.LogTypeSLB, newProvider(logquery.LogTypeSLB))
 	logquery.RegisterProvider(domain.CloudProviderAliyun, logquery.LogTypeWAF, newProvider(logquery.LogTypeWAF))
 	logquery.RegisterProvider(domain.CloudProviderAliyun, logquery.LogTypeCDN, newProvider(logquery.LogTypeCDN))
+	logquery.RegisterProvider(domain.CloudProviderAliyun, logquery.LogTypeApp, newProvider(logquery.LogTypeApp))
 }
 
 // slsSource SLS 源 catalog 条目:project(含 logstore 为动态枚举)。
@@ -76,6 +77,10 @@ var catalog = []slsSource{
 	// (当前 jlcfa-his=www.jlcfa.com + api_forface3d_com;metrics/internal 流被过滤)
 	{region: "cn-shenzhen", project: "jlc-prod-cdn-log", logType: logquery.LogTypeCDN, kind: kindCDNOffline,
 		logstore: "", name: "CDN 离线转存", note: "CDN 离线日志转存(按转存任务)"},
+	// ---- 应用业务日志(2026-10 实测:jlc-prod-log 每 <service>-business
+	// store 单服务,java logback schema;RCA 服务间消费的数据源) ----
+	{region: "cn-shenzhen", project: "jlc-prod-log", logType: logquery.LogTypeApp, kind: kindApp,
+		logstore: "", name: "应用业务日志", note: "生产应用业务日志(服务级 store,service/level/message 契约字段)"},
 }
 
 // maxFanoutConcurrency logstore/域名扇出并发上限。混装源按域名/lb 实例扇出
@@ -412,8 +417,10 @@ func (p *provider) Search(ctx context.Context, account *domain.CloudAccount, par
 		for _, ls := range stores {
 			// mixedDomains 源的资源语义是"域名"(扇出内部过滤),logstore 名
 			// 仅作整体开关;此处不按 logstore 过滤(否则选域名时混装源被整流跳过)
+			// kindApp 资源语义是"服务名"(store=<service>-business),两者都放行
 			if !src.mixedDomains && len(resourceFilter) > 0 &&
-				!resourceFilter[ls] && !resourceFilter[src.project] {
+				!resourceFilter[ls] && !resourceFilter[src.project] &&
+				!(src.kind == kindApp && resourceFilter[appServiceOf(ls)]) {
 				continue
 			}
 			targets = append(targets, fetchTarget{src: src, logstore: ls})
@@ -526,9 +533,11 @@ func (p *provider) Aggregate(ctx context.Context, account *domain.CloudAccount, 
 			stores = filterCatalogStores(src.kind, ls)
 		}
 		for _, ls := range stores {
-			// 与 Search 相同:混装源的资源语义是域名(拼进检索段),整 store 条目放行
+			// 与 Search 相同:混装源的资源语义是域名(拼进检索段),整 store 条目放行;
+			// kindApp 资源语义是"服务名"(store=<service>-business),两者都放行
 			if !src.mixedDomains && len(resourceFilter) > 0 &&
-				!resourceFilter[ls] && !resourceFilter[src.project] {
+				!resourceFilter[ls] && !resourceFilter[src.project] &&
+				!(src.kind == kindApp && resourceFilter[appServiceOf(ls)]) {
 				continue
 			}
 			targets = append(targets, aggrTarget{src: src, logstore: ls})
@@ -1046,9 +1055,21 @@ func filterCatalogStores(kind mapperKind, stores []string) []string {
 		if kind == kindALB && nonALBStore(ls) {
 			continue
 		}
+		// kindApp 只收 <service>-business 业务流(nacos/内部流/ALB 流全部排除;
+		// 命名约定即"一 store 一服务",服务名 = store 去 -business 后缀)
+		if kind == kindApp && !strings.HasSuffix(ls, "-business") {
+			continue
+		}
 		out = append(out, ls)
 	}
 	return out
+}
+
+// appServiceOf 应用业务 store 的服务名(<service>-business -> <service>)。
+// Search/Aggregate 的资源过滤同时接受服务名与 store 名(RCA 消费方只知道
+// 服务名,不应感知 store 命名约定)。
+func appServiceOf(logstore string) string {
+	return strings.TrimSuffix(logstore, "-business")
 }
 
 func isInternalStore(ls string) bool {

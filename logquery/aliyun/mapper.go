@@ -1,4 +1,4 @@
-﻿package aliyun
+package aliyun
 
 import (
 	"math"
@@ -20,6 +20,7 @@ const (
 	kindCDNOffline mapperKind = "cdn_offline" // CDN 离线转存(独立 PascalCase schema,域名在 RequestURL)
 	kindAkamaiCDN  mapperKind = "akamai_cdn"  // Akamai CDN(自采,69 字段)
 	kindAkamaiWAF  mapperKind = "akamai_waf"  // Akamai WAF(自采,CEF 展开为字段)
+	kindApp        mapperKind = "app"         // 应用业务日志(jlc-prod-log <service>-business store,java logback 实测 schema)
 )
 
 // mapEntry 按 kind 把一条 SLS 原始日志映射为统一模型(Raw 全量保留,ADR D3)。
@@ -48,8 +49,35 @@ func mapEntry(kind mapperKind, m logquery.LogMeta, raw map[string]string) logque
 		return mapAkamaiCDN(m, r, raw)
 	case kindAkamaiWAF:
 		return mapAkamaiWAF(m, r, raw)
+	case kindApp:
+		return mapApp(m, r, raw)
 	default:
 		return nil
+	}
+}
+
+// mapApp 应用业务日志 -> AppLogEntry(2026-10 jlc-prod-log 实测 schema)。
+// 服务名取 document_type 去 "-business" 后缀(空回退 logstore 名,即 Meta
+// ResourceID);level 统一小写;message 优先 msg 列(解析正文),空回退
+// message 列(带时间戳前缀的原始行);exception/trace_id 缺失如实留空。
+func mapApp(m logquery.LogMeta, r map[string]any, raw map[string]string) *logquery.AppLogEntry {
+	service := strings.TrimSuffix(raw["document_type"], "-business")
+	if service == "" {
+		service = strings.TrimSuffix(m.ResourceID, "-business")
+	}
+	msg := raw["msg"]
+	if msg == "" {
+		msg = raw["message"]
+	}
+	return &logquery.AppLogEntry{
+		Meta:      m,
+		Timestamp: logquery.ParseTimeMs(raw["__time__"]),
+		Service:   service,
+		Level:     logquery.NormalizeLevel(raw["level"]),
+		Message:   msg,
+		Exception: raw["exception"],
+		TraceID:   raw["trace_id"],
+		Raw:       r,
 	}
 }
 

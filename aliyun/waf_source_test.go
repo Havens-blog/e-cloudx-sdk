@@ -3,6 +3,8 @@ package aliyun
 import (
 	"testing"
 	"time"
+
+	"github.com/Havens-blog/e-cloudx-sdk/types"
 )
 
 func TestConvertResourceToInstanceCreationTime(t *testing.T) {
@@ -54,6 +56,51 @@ func TestConvertResourceToInstanceTagsUnavailable(t *testing.T) {
 	if len(inst.Tags) != 0 {
 		t.Fatalf("Tags 应保持空 map,实际 %v", inst.Tags)
 	}
+}
+
+func TestMergeDomainDetailEnrich(t *testing.T) {
+	t.Run("AllBackends 优先并回填 Cname/资源组", func(t *testing.T) {
+		inst := &types.WAFInstance{InstanceID: "example.com"}
+		mergeDomainDetailEnrich(inst, &describeDomainDetailResponse{
+			Cname: "abc.waf.example.com",
+			Redirect: &redirectDetail{
+				AllBackends: []string{"1.2.3.4:443"},
+				BackendList: []string{"5.6.7.8:443"},
+			},
+			ResourceManagerResourceGroupId: "rg-abc123",
+		})
+		if len(inst.SourceIPs) != 1 || inst.SourceIPs[0] != "1.2.3.4:443" {
+			t.Fatalf("SourceIPs 应取 AllBackends: %v", inst.SourceIPs)
+		}
+		if inst.Cname != "abc.waf.example.com" {
+			t.Fatalf("Cname 未回填: %q", inst.Cname)
+		}
+		if inst.ResourceGroupID != "rg-abc123" {
+			t.Fatalf("ResourceGroupID 未回填: %q", inst.ResourceGroupID)
+		}
+	})
+
+	t.Run("Backends 逐条回退", func(t *testing.T) {
+		inst := &types.WAFInstance{}
+		mergeDomainDetailEnrich(inst, &describeDomainDetailResponse{
+			Redirect: &redirectDetail{Backends: []backendItem{{Backend: "9.9.9.9:80"}, {Backend: ""}}},
+		})
+		if len(inst.SourceIPs) != 1 || inst.SourceIPs[0] != "9.9.9.9:80" {
+			t.Fatalf("Backends 回退失败: %v", inst.SourceIPs)
+		}
+	})
+
+	t.Run("nil/空详情保持原值", func(t *testing.T) {
+		inst := &types.WAFInstance{Cname: "keep", ResourceGroupID: "rg-old"}
+		mergeDomainDetailEnrich(inst, nil)
+		if inst.Cname != "keep" || inst.ResourceGroupID != "rg-old" {
+			t.Fatalf("nil 详情不应改变原值: %+v", inst)
+		}
+		mergeDomainDetailEnrich(inst, &describeDomainDetailResponse{})
+		if inst.Cname != "keep" || inst.ResourceGroupID != "rg-old" {
+			t.Fatalf("空详情不应改变原值: %+v", inst)
+		}
+	})
 }
 
 func TestWafSite(t *testing.T) {
