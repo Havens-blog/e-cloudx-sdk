@@ -1,4 +1,4 @@
-﻿// 聚合能力(plan.md §8):DescribeHistogramV1 原生时间分桶,不依赖字段分析索引
+// 聚合能力(plan.md §8):DescribeHistogramV1 原生时间分桶,不依赖字段分析索引
 // (火山自采 topic 多未建分析索引,SearchLogs SQL 会报 IndexNotExists,而
 // DescribeHistogram 只需检索维度)。TopN 仍须字段分析索引,火山跳过并标注。
 package volcengine
@@ -28,8 +28,22 @@ func (p *provider) Aggregate(ctx context.Context, account *domain.CloudAccount, 
 	if params.EndTime <= params.StartTime {
 		return nil, fmt.Errorf("volcengine logquery aggregate: invalid time window")
 	}
+	query := "*"
+	if q := strings.TrimSpace(params.Query); q != "" && q != "*" {
+		query = q
+	}
+	isApp := p.logType == logquery.LogTypeApp
 	if len(params.Filters) > 0 {
-		return nil, fmt.Errorf("volcengine: 字段筛选无法下推聚合(跳过该源,避免计数失真)")
+		if !isApp {
+			return nil, fmt.Errorf("volcengine: 字段筛选无法下推聚合(跳过该源,避免计数失真)")
+		}
+		// 应用日志:level 等值可下推(TLS key-value 检索大小写不敏感,实测证);
+		// 其余过滤不可下推仍整源跳过,避免计数失真(诚实优先)。
+		var pushable bool
+		query, pushable = appPushdownQuery(query, params.Filters)
+		if !pushable {
+			return nil, fmt.Errorf("volcengine: 存在无法下推的字段筛选(仅 level 等值可下推),跳过该源避免计数失真")
+		}
 	}
 	if params.BucketSec <= 0 {
 		params.BucketSec = logquery.PickBucketSec(params.StartTime, params.EndTime)
@@ -40,11 +54,21 @@ func (p *provider) Aggregate(ctx context.Context, account *domain.CloudAccount, 
 			want[r] = true
 		}
 	}
-	query := "*"
-	if q := strings.TrimSpace(params.Query); q != "" && q != "*" {
-		query = q
-	}
 	targets := p.accessTopics(ctx, want)
+	if isApp {
+		// 服务等值过滤 → 资源收敛(一服务一 topic):GetLogCount 类按服务计数
+		// 从 704 topic 全扇出收敛到单 topic,计数语义不变。
+		if svcWant, ok := appResourceFilter(params.Filters); ok && svcWant != nil {
+			if len(want) == 0 {
+				want = svcWant
+			} else {
+				for k := range svcWant {
+					want[k] = true
+				}
+			}
+		}
+		targets = p.appTopics(ctx, want)
+	}
 
 	var (
 		mu    sync.Mutex
