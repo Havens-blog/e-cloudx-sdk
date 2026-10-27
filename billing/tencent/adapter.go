@@ -1,4 +1,4 @@
-﻿package tencent
+package tencent
 
 import (
 	"context"
@@ -49,11 +49,27 @@ func (a *TencentBillingAdapter) GetProvider() domain.CloudProvider {
 }
 
 func (a *TencentBillingAdapter) FetchBillDetails(ctx context.Context, params billing.FetchBillParams) ([]billing.RawBillItem, error) {
-	billingCycle := params.StartTime.Format("2006-01")
 	limit := uint64(params.PageSize)
 	if limit <= 0 {
 		limit = uint64(defaultPageSize)
 	}
+
+	// 逐月遍历 [StartTime, EndTime] 覆盖的所有账期月（适配器契约：返回整个
+	// 时间范围的账单明细）。此前只查 StartTime 所在单月，增量起点一旦落在
+	// 历史账期，每轮采集都会重复拉同一批旧账单，后续账期永远覆盖不到。
+	var allItems []billing.RawBillItem
+	for _, billingCycle := range billing.EnumerateMonths(params.StartTime, params.EndTime) {
+		items, err := a.fetchMonthBills(ctx, billingCycle, limit)
+		if err != nil {
+			return nil, err
+		}
+		allItems = append(allItems, items...)
+	}
+	return allItems, nil
+}
+
+// fetchMonthBills 拉取单个账期月的全部账单明细（Offset/Limit 分页）
+func (a *TencentBillingAdapter) fetchMonthBills(ctx context.Context, billingCycle string, limit uint64) ([]billing.RawBillItem, error) {
 	var allItems []billing.RawBillItem
 	offset := uint64(0)
 	for {
