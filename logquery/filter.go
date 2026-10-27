@@ -150,6 +150,8 @@ func entryFieldValue(e LogEntry, field string) (string, bool) {
 			return v.Level, true
 		case "message":
 			return v.Message, true
+		case "exception":
+			return v.Exception, true
 		case "trace_id":
 			return v.TraceID, true
 		}
