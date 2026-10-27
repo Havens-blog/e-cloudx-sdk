@@ -1,4 +1,4 @@
-﻿// Package volcengine 火山引擎日志查询 provider。
+// Package volcengine 火山引擎日志查询 provider。
 //
 // 火山云日志均投递到 TLS(火山日志服务)。分两类注册:
 //   - SLB(`*_lb_access`,原生 schema loadbalancer_id/listener_id)= 火山 ALB 产品日志;
@@ -84,15 +84,18 @@ type provider struct {
 }
 
 func init() {
-	// 两类注册:SLB = 火山 ALB(`*_lb_access`),access = 自采 nginx/gateway。
+	// 三类注册:SLB = 火山 ALB(`*_lb_access`),access = 自采 nginx/gateway,
+	// app = 应用业务日志(`<service>-business`,与阿里同采集管道)。
 	// CDN/WAF 托管产品日志未投递 TLS。
 	// volcano/volcengine 双键注册:与 billing/iam/资产注册表口径一致(火山账号
 	// 两个 provider 别名均存在,federation 按 acc.Provider 直查,单键会导致
 	// provider=volcano 的账号在日志域查不到源)。
 	logquery.RegisterProvider(domain.CloudProviderVolcengine, logquery.LogTypeSLB, newProvider(logquery.LogTypeSLB))
 	logquery.RegisterProvider(domain.CloudProviderVolcengine, logquery.LogTypeAccess, newProvider(logquery.LogTypeAccess))
+	logquery.RegisterProvider(domain.CloudProviderVolcengine, logquery.LogTypeApp, newProvider(logquery.LogTypeApp))
 	logquery.RegisterProvider(domain.CloudProviderVolcano, logquery.LogTypeSLB, newProvider(logquery.LogTypeSLB))
 	logquery.RegisterProvider(domain.CloudProviderVolcano, logquery.LogTypeAccess, newProvider(logquery.LogTypeAccess))
+	logquery.RegisterProvider(domain.CloudProviderVolcano, logquery.LogTypeApp, newProvider(logquery.LogTypeApp))
 }
 
 func newProvider(logType logquery.LogType) logquery.ProviderCreator {
@@ -367,6 +370,9 @@ func sourceLabel(topicName string) string {
 // 首次加载未缓存源乐观标 enabled,后台预热完成后刷新即看到真实的 false。
 func (p *provider) ListLogSources(ctx context.Context, account *domain.CloudAccount) ([]logquery.LogSource, error) {
 	refs := p.accessTopics(ctx, nil)
+	if p.logType == logquery.LogTypeApp {
+		refs = p.appTopics(ctx, nil)
+	}
 	seen := make(map[string]bool, len(refs))
 	out := make([]logquery.LogSource, 0, len(refs))
 	for _, ref := range refs {
@@ -380,7 +386,12 @@ func (p *provider) ListLogSources(ctx context.Context, account *domain.CloudAcco
 		seen[name] = true
 		p.indexProbeAsync(ref) // 后台预热(去重 + 限流),不阻塞返回
 		enabled, stale := p.indexInfo(ref)
+		label := sourceLabel(name) + " / " + name
 		note := "火山 TLS 访问日志"
+		if p.logType == logquery.LogTypeApp {
+			label = "App / " + appServiceOf(name)
+			note = "火山 TLS 应用业务日志(一服务一 topic)"
+		}
 		if !enabled {
 			note = "该 topic 未开启检索索引,查询/聚合不可用"
 		} else if stale {
@@ -393,7 +404,7 @@ func (p *provider) ListLogSources(ctx context.Context, account *domain.CloudAcco
 			Region:      ref.region,
 			LogType:     p.logType,
 			ResourceID:  name,
-			Name:        sourceLabel(name) + " / " + name,
+			Name:        label,
 			Enabled:     enabled,
 			Stale:       stale,
 			Note:        note,
@@ -418,17 +429,48 @@ func (p *provider) Search(ctx context.Context, account *domain.CloudAccount, par
 		}
 	}
 	targets := p.accessTopics(ctx, want)
+	if p.logType == logquery.LogTypeApp {
+		// 服务等值过滤 → 资源收敛(一服务一 topic,704 → 1),与下推并用
+		if svcWant, _ := appResourceFilter(params.Filters); svcWant != nil {
+			if len(want) == 0 {
+				want = svcWant
+			} else {
+				for k := range svcWant {
+					want[k] = true
+				}
+			}
+		}
+		targets = p.appTopics(ctx, want)
+	}
 	query := "*"
 	if q := strings.TrimSpace(params.Query); q != "" && q != "*" {
 		query = q
 	}
+	if p.logType == logquery.LogTypeApp {
+		// 应用日志检索式下推:level 等值(TLS key-value 大小写不敏感,单形态
+		// 全变体覆盖,实测证)与 query 合并;不可下推过滤仍留明细层 EntryMatches。
+		query, _ = appPushdownQuery(query, params.Filters)
+	}
 
 	results := make([][]logquery.LogEntry, len(targets))
 	var wg sync.WaitGroup
+	// searchConcurrency 逐 topic 并发上限:app topic 数可达 704+(dev 舰队),
+	// 无界 goroutine 会打爆 TLS QPS;32 并发下 704 topic 单页扇出 ~20s 量级。
+	const searchConcurrency = 32
+	sem := make(chan struct{}, searchConcurrency)
+	// app 检索单 topic 页预算:一服务一 topic,联邦/RCA 采样只需每源近窗样本,
+	// 单 topic 100 条(通常一页)足够,超量由 provider 级 3000 帽 + 时间降序归并
+	// 截断;少翻页把 704 topic 扇出压进超时预算(实测 60s → 目标 <30s)。
+	perTopicLimit := limit
+	if p.logType == logquery.LogTypeApp && perTopicLimit > 100 {
+		perTopicLimit = 100
+	}
 	for i, tgt := range targets {
 		wg.Add(1)
 		go func() {
 			defer wg.Done()
+			sem <- struct{}{}
+			defer func() { <-sem }()
 			if p.indexKnownDisabled(tgt) {
 				return // 源清单已确认无索引:跳过,不打空请求(未知态照常查,由 IndexNotExists 隔离)
 			}
@@ -440,7 +482,7 @@ func (p *provider) Search(ctx context.Context, account *domain.CloudAccount, par
 				ResourceID:  tgt.topicName,
 				Source:      tgt.region + "/" + tgt.topicID,
 			}
-			entries, err := p.searchLogs(ctx, tgt.region, tgt.topicID, params.StartTime, params.EndTime, query, limit, meta)
+			entries, err := p.searchLogs(ctx, tgt.region, tgt.topicID, params.StartTime, params.EndTime, query, perTopicLimit, meta)
 			if err != nil {
 				p.logger.Warn("[logquery-volcengine] search topic failed",
 					elog.String("region", tgt.region), elog.String("topic", tgt.topicID), elog.FieldErr(err))
@@ -497,7 +539,11 @@ func (p *provider) searchLogs(ctx context.Context, region, topicID string, start
 			break
 		}
 		for _, raw := range resp.Logs {
-			out = append(out, mapAccessLog(meta, raw))
+			if p.logType == logquery.LogTypeApp {
+				out = append(out, mapApp(meta, raw))
+			} else {
+				out = append(out, mapAccessLog(meta, raw))
+			}
 		}
 		if len(resp.Logs) < pageSize || resp.ListOver {
 			break
