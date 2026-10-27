@@ -1,4 +1,4 @@
-// 结构化字段筛选(plan.md §9 扩展):按 /types 字段字典构建多条件
+﻿// 结构化字段筛选(plan.md §9 扩展):按 /types 字段字典构建多条件
 // (eq/neq/contains/prefix) AND 叠加。统一语义定义在**归一化字段**上:
 //   - 明细(Search):映射后逐条过滤(采样量级,各云一致,不依赖搜索索引);
 //   - 聚合(Aggregate):能下推的源编译进检索/分析 SQL,不能下推的源
@@ -154,6 +154,27 @@ func entryFieldValue(e LogEntry, field string) (string, bool) {
 			return v.Exception, true
 		case "trace_id":
 			return v.TraceID, true
+		}
+	case *K8sEventLogEntry:
+		switch field {
+		case "cluster":
+			return v.Cluster, true
+		case "cluster_id":
+			return v.ClusterID, true
+		case "namespace":
+			return v.Namespace, true
+		case "kind":
+			return v.Kind, true
+		case "object":
+			return v.Object, true
+		case "reason":
+			return v.Reason, true
+		case "level":
+			return v.Level, true
+		case "message":
+			return v.Message, true
+		case "count":
+			return strconv.FormatInt(v.Count, 10), true
 		}
 	}
 	return "", false

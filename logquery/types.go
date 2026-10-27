@@ -1,4 +1,4 @@
-// Package logquery 多云统一日志查询共享域(Phase 1,plan.md §4.1/§4.2)。
+﻿// Package logquery 多云统一日志查询共享域(Phase 1,plan.md §4.1/§4.2)。
 //
 // 设计要点(ADR D1~D6):
 //   - 采集适配与字段归一分离:Provider 只负责"把原始日志拿来",映射层负责
@@ -38,10 +38,15 @@ const (
 	// service/level/message/timestamp 为 RCA 服务间消费的稳定契约
 	// (OpsAgent 经 e-cam 联邦取错误日志做根因分析)。
 	LogTypeApp LogType = "app"
+	// LogTypeK8sEvent Kubernetes 事件日志(ACK 集群 eventer → SLS
+	// k8s-log-<clusterId> project 的 k8s-event store,2026-10-27 实测)。
+	// 字段 cluster/reason/namespace/level 为 RCA "按集群/原因统计异常事件"
+	// 的消费契约;eventId 为完整 K8s 事件 JSON(Raw 兜底)。
+	LogTypeK8sEvent LogType = "k8s-event"
 )
 
 // AllLogTypes 全部日志类型(注册/校验用)。
-var AllLogTypes = []LogType{LogTypeCDN, LogTypeWAF, LogTypeSLB, LogTypeAccess, LogTypeApp}
+var AllLogTypes = []LogType{LogTypeCDN, LogTypeWAF, LogTypeSLB, LogTypeAccess, LogTypeApp, LogTypeK8sEvent}
 
 // IsValidLogType 校验日志类型合法值。
 func IsValidLogType(t LogType) bool {
@@ -167,6 +172,31 @@ func (e *AppLogEntry) GetTimestamp() int64 { return e.Timestamp }
 
 // GetMeta 实现 LogEntry。
 func (e *AppLogEntry) GetMeta() LogMeta { return e.Meta }
+
+// K8sEventLogEntry Kubernetes 事件统一模型(ACK eventer 实测 schema:
+// 外层 clusterId/clusterName/level + eventId 完整事件 JSON)。
+type K8sEventLogEntry struct {
+	Meta      LogMeta        `json:"meta"`
+	Timestamp int64          `json:"timestamp"`  // Unix ms UTC(__time__,最近一次刷新)
+	ClusterID string         `json:"cluster_id"` // 集群 ID(= project 后缀)
+	Cluster   string         `json:"cluster"`    // 集群名(clusterName,如 ali-jlc-transit-zone-k8s)
+	Namespace string         `json:"namespace"`  // involvedObject.namespace
+	Kind      string         `json:"kind"`       // involvedObject.kind(Pod/Deployment/HPA…)
+	Object    string         `json:"object"`     // involvedObject.name
+	Reason    string         `json:"reason"`     // 事件原因(FailedGetScale/OOMKilled…)
+	Level     string         `json:"level"`      // 归一: warning(Warning)/info(Normal)
+	Count     int64          `json:"count"`      // 事件累计发生次数(k8s 去重计数)
+	FirstSeen int64          `json:"first_seen"` // 首次发生 ms
+	LastSeen  int64          `json:"last_seen"`  // 最近发生 ms
+	Message   string         `json:"message"`    // reason: message 正文
+	Raw       map[string]any `json:"raw"`        // eventId 全量 JSON 等原始字段
+}
+
+// GetTimestamp 实现 LogEntry。
+func (e *K8sEventLogEntry) GetTimestamp() int64 { return e.Timestamp }
+
+// GetMeta 实现 LogEntry。
+func (e *K8sEventLogEntry) GetMeta() LogMeta { return e.Meta }
 
 // NormalizeLevel 应用日志级别归一(去空白 + 小写;空保持空,不占位编造)。
 // 实测取值 INFO/WARN/ERROR/DEBUG(java logback 惯例),归一后供筛选与

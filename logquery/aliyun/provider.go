@@ -13,6 +13,7 @@ package aliyun
 import (
 	"context"
 	"fmt"
+	"slices"
 	"sort"
 	"strconv"
 	"strings"
@@ -30,6 +31,7 @@ func init() {
 	logquery.RegisterProvider(domain.CloudProviderAliyun, logquery.LogTypeWAF, newProvider(logquery.LogTypeWAF))
 	logquery.RegisterProvider(domain.CloudProviderAliyun, logquery.LogTypeCDN, newProvider(logquery.LogTypeCDN))
 	logquery.RegisterProvider(domain.CloudProviderAliyun, logquery.LogTypeApp, newProvider(logquery.LogTypeApp))
+	logquery.RegisterProvider(domain.CloudProviderAliyun, logquery.LogTypeK8sEvent, newProvider(logquery.LogTypeK8sEvent))
 }
 
 // slsSource SLS 源 catalog 条目:project(含 logstore 为动态枚举)。
@@ -143,6 +145,10 @@ func (p *provider) LogType() logquery.LogType { return p.logType }
 // (串行曾是 WAF sources 5s 的主因);动态枚举 logstore 的 catalog 条目
 // 同样并发。
 func (p *provider) ListLogSources(ctx context.Context, account *domain.CloudAccount) ([]logquery.LogSource, error) {
+	// K8s 事件源是 project 级动态枚举(k8s-log-* 前缀,每集群一源),不走 catalog。
+	if p.logType == logquery.LogTypeK8sEvent {
+		return p.listK8sEventSources(), nil
+	}
 	type enumTask struct {
 		idx      int // 写入槽位
 		src      slsSource
@@ -222,6 +228,74 @@ func (p *provider) ListLogSources(ctx context.Context, account *domain.CloudAcco
 		out = append(out, s...)
 	}
 	return out, nil
+}
+
+// k8sEventStore ACK 事件接入的固定 logstore 名(实测各集群一致)。
+const k8sEventStore = "k8s-event"
+
+// k8sEventRegions 事件源枚举 region(2026-10-27 实测:24 个 k8s-log-*
+// project 全部在 cn-shenzhen;cn-hangzhou 18 个 project 无 k8s-log-*,
+// eu-central-1 亦无)。ACK 集群落新 region 时在此追加。
+var k8sEventRegions = []string{"cn-shenzhen"}
+
+// k8sEventTargets 枚举有 k8s-event store 的 (region, project) 目标
+// (进程级缓存:project 清单与 store 清单分钟级稳定)。
+func (p *provider) k8sEventTargets() []slsSource {
+	var out []slsSource
+	for _, region := range k8sEventRegions {
+		projects, _ := logstoreEnumCache.get("k8s-projects/"+region, func() []string {
+			ps, err := p.clientFor(region).ListProject()
+			if err != nil {
+				p.logger.Warn("[logquery-aliyun] list k8s projects failed",
+					elog.String("region", region), elog.FieldErr(err))
+				return nil
+			}
+			var ks []string
+			for _, pr := range ps {
+				if strings.HasPrefix(pr, "k8s-log-") {
+					ks = append(ks, pr)
+				}
+			}
+			return ks
+		})
+		for _, pr := range projects {
+			stores, _ := logstoreEnumCache.get(region+"/"+pr, func() []string {
+				ls, err := p.clientFor(region).ListLogStore(pr)
+				if err != nil {
+					p.logger.Warn("[logquery-aliyun] list k8s logstores failed",
+						elog.String("project", pr), elog.FieldErr(err))
+					return nil
+				}
+				return ls
+			})
+			if slices.Contains(stores, k8sEventStore) {
+				out = append(out, slsSource{
+					region:  region,
+					project: pr,
+					logType: p.logType,
+					kind:    kindK8sEvent,
+					name:    "K8s 事件",
+					note:    "ACK 集群事件(level/reason/namespace 精确聚合)",
+				})
+			}
+		}
+	}
+	return out
+}
+
+// listK8sEventSources 集群事件源清单:资源语义 = 集群(ResourceID=集群 ID,
+// project 去 k8s-log- 前缀),集群名(clusterName)在数据行里,sources 阶段
+// 不做额外 API 换名。
+func (p *provider) listK8sEventSources() []logquery.LogSource {
+	var out []logquery.LogSource
+	for _, src := range p.k8sEventTargets() {
+		clusterID := strings.TrimPrefix(src.project, "k8s-log-")
+		s := p.toSource(src, k8sEventStore, true)
+		s.ResourceID = clusterID
+		s.Name = src.name + " / " + clusterID
+		out = append(out, s)
+	}
+	return out
 }
 
 // toSource catalog 条目 -> LogSource。
@@ -393,37 +467,51 @@ func (p *provider) Search(ctx context.Context, account *domain.CloudAccount, par
 		logstore string
 	}
 	var targets []fetchTarget
-	for _, src := range catalog {
-		if src.logType != p.logType {
-			continue
-		}
-		if len(regionFilter) > 0 && !regionFilter[src.region] {
-			continue
-		}
-		stores := []string{src.logstore}
-		if src.logstore == "" {
-			// logstore 清单走缓存(Search 每请求都来一遍,裸调用曾多耗 ~1s)
-			ls, _ := logstoreEnumCache.get(src.region+"/"+src.project, func() []string {
-				out, err := p.clientFor(src.region).ListLogStore(src.project)
-				if err != nil {
-					p.logger.Warn("[logquery-aliyun] list logstores failed",
-						elog.String("project", src.project), elog.FieldErr(err))
-					return nil
-				}
-				return out
-			})
-			stores = filterCatalogStores(src.kind, ls)
-		}
-		for _, ls := range stores {
-			// mixedDomains 源的资源语义是"域名"(扇出内部过滤),logstore 名
-			// 仅作整体开关;此处不按 logstore 过滤(否则选域名时混装源被整流跳过)
-			// kindApp 资源语义是"服务名"(store=<service>-business),两者都放行
-			if !src.mixedDomains && len(resourceFilter) > 0 &&
-				!resourceFilter[ls] && !resourceFilter[src.project] &&
-				!(src.kind == kindApp && resourceFilter[appServiceOf(ls)]) {
+	if p.logType == logquery.LogTypeK8sEvent {
+		// K8s 事件:每集群一目标(资源语义=集群 ID),无域名/服务扇出。
+		for _, src := range p.k8sEventTargets() {
+			if len(regionFilter) > 0 && !regionFilter[src.region] {
 				continue
 			}
-			targets = append(targets, fetchTarget{src: src, logstore: ls})
+			clusterID := strings.TrimPrefix(src.project, "k8s-log-")
+			if len(resourceFilter) > 0 && !resourceFilter[clusterID] && !resourceFilter[src.project] {
+				continue
+			}
+			targets = append(targets, fetchTarget{src: src, logstore: k8sEventStore})
+		}
+	} else {
+		for _, src := range catalog {
+			if src.logType != p.logType {
+				continue
+			}
+			if len(regionFilter) > 0 && !regionFilter[src.region] {
+				continue
+			}
+			stores := []string{src.logstore}
+			if src.logstore == "" {
+				// logstore 清单走缓存(Search 每请求都来一遍,裸调用曾多耗 ~1s)
+				ls, _ := logstoreEnumCache.get(src.region+"/"+src.project, func() []string {
+					out, err := p.clientFor(src.region).ListLogStore(src.project)
+					if err != nil {
+						p.logger.Warn("[logquery-aliyun] list logstores failed",
+							elog.String("project", src.project), elog.FieldErr(err))
+						return nil
+					}
+					return out
+				})
+				stores = filterCatalogStores(src.kind, ls)
+			}
+			for _, ls := range stores {
+				// mixedDomains 源的资源语义是"域名"(扇出内部过滤),logstore 名
+				// 仅作整体开关;此处不按 logstore 过滤(否则选域名时混装源被整流跳过)
+				// kindApp 资源语义是"服务名"(store=<service>-business),两者都放行
+				if !src.mixedDomains && len(resourceFilter) > 0 &&
+					!resourceFilter[ls] && !resourceFilter[src.project] &&
+					!(src.kind == kindApp && resourceFilter[appServiceOf(ls)]) {
+					continue
+				}
+				targets = append(targets, fetchTarget{src: src, logstore: ls})
+			}
 		}
 	}
 
@@ -515,32 +603,42 @@ func (p *provider) Aggregate(ctx context.Context, account *domain.CloudAccount, 
 		logstore string
 	}
 	var targets []aggrTarget
-	for _, src := range catalog {
-		if src.logType != p.logType {
-			continue
-		}
-		stores := []string{src.logstore}
-		if src.logstore == "" {
-			ls, _ := logstoreEnumCache.get(src.region+"/"+src.project, func() []string {
-				out, err := p.clientFor(src.region).ListLogStore(src.project)
-				if err != nil {
-					p.logger.Warn("[logquery-aliyun] aggregate list logstores failed",
-						elog.String("project", src.project), elog.FieldErr(err))
-					return nil
-				}
-				return out
-			})
-			stores = filterCatalogStores(src.kind, ls)
-		}
-		for _, ls := range stores {
-			// 与 Search 相同:混装源的资源语义是域名(拼进检索段),整 store 条目放行;
-			// kindApp 资源语义是"服务名"(store=<service>-business),两者都放行
-			if !src.mixedDomains && len(resourceFilter) > 0 &&
-				!resourceFilter[ls] && !resourceFilter[src.project] &&
-				!(src.kind == kindApp && resourceFilter[appServiceOf(ls)]) {
+	if p.logType == logquery.LogTypeK8sEvent {
+		for _, src := range p.k8sEventTargets() {
+			clusterID := strings.TrimPrefix(src.project, "k8s-log-")
+			if len(resourceFilter) > 0 && !resourceFilter[clusterID] && !resourceFilter[src.project] {
 				continue
 			}
-			targets = append(targets, aggrTarget{src: src, logstore: ls})
+			targets = append(targets, aggrTarget{src: src, logstore: k8sEventStore})
+		}
+	} else {
+		for _, src := range catalog {
+			if src.logType != p.logType {
+				continue
+			}
+			stores := []string{src.logstore}
+			if src.logstore == "" {
+				ls, _ := logstoreEnumCache.get(src.region+"/"+src.project, func() []string {
+					out, err := p.clientFor(src.region).ListLogStore(src.project)
+					if err != nil {
+						p.logger.Warn("[logquery-aliyun] aggregate list logstores failed",
+							elog.String("project", src.project), elog.FieldErr(err))
+						return nil
+					}
+					return out
+				})
+				stores = filterCatalogStores(src.kind, ls)
+			}
+			for _, ls := range stores {
+				// 与 Search 相同:混装源的资源语义是域名(拼进检索段),整 store 条目放行;
+				// kindApp 资源语义是"服务名"(store=<service>-business),两者都放行
+				if !src.mixedDomains && len(resourceFilter) > 0 &&
+					!resourceFilter[ls] && !resourceFilter[src.project] &&
+					!(src.kind == kindApp && resourceFilter[appServiceOf(ls)]) {
+					continue
+				}
+				targets = append(targets, aggrTarget{src: src, logstore: ls})
+			}
 		}
 	}
 

@@ -28,6 +28,12 @@ const maxProbeStores = 6
 // 冷启动一次 GetIndex 后 TTL 内零 API 调用;store 间并发探测(单 store
 // GetIndex 失败只跳过,不阻塞整并集)。
 func (p *provider) AggregatableFields(ctx context.Context, _ *domain.CloudAccount) ([]string, error) {
+	// K8s 事件:字段集由 ACK 事件接入的固定索引决定(2026-10-27 实测:外层
+	// level 单列 + eventId JSON 30 子键全 doc_value),直接给实测清单,
+	// 免逐集群 GetIndex 探测。
+	if p.logType == logquery.LogTypeK8sEvent {
+		return []string{"kind", "level", "namespace", "object", "reason"}, nil
+	}
 	// 收集探测目标(固定 store 全量;动态枚举 project 截断前 maxProbeStores)
 	var targets []struct{ region, project, logstore string }
 	for _, src := range catalog {
