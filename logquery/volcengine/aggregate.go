@@ -1,4 +1,4 @@
-// 聚合能力(plan.md §8):DescribeHistogramV1 原生时间分桶,不依赖字段分析索引
+﻿// 聚合能力(plan.md §8):DescribeHistogramV1 原生时间分桶,不依赖字段分析索引
 // (火山自采 topic 多未建分析索引,SearchLogs SQL 会报 IndexNotExists,而
 // DescribeHistogram 只需检索维度)。TopN 仍须字段分析索引,火山跳过并标注。
 package volcengine
@@ -10,15 +10,17 @@ import (
 	"strings"
 	"sync"
 
-	"github.com/Havens-blog/e-cloudx-sdk/logquery"
 	"github.com/Havens-blog/e-cloudx-sdk/domain"
+	"github.com/Havens-blog/e-cloudx-sdk/logquery"
 	"github.com/gotomicro/ego/core/elog"
 	"github.com/volcengine/volc-sdk-golang/service/tls"
 )
 
-// histogramConcurrency DescribeHistogram 并发度(逐 topic 一请求,1130 topic
-// 会打爆,收敛到与 Search 相近的扇出并发)。
-const histogramConcurrency = 8
+// histogramConcurrency DescribeHistogram 并发度(逐 topic 一请求)。火山 app
+// 联邦实际枚举 2158 topic(多 region,2026-10 实测),8 并发全扇出 ≈ 48s、
+// 16 并发 ≈ 38s(实测),均超联邦 30s 预算;32 并发与 Search 同级(生产
+// 实测无 429;单 topic 失败仅告警跳过,不阻塞整体)。
+const histogramConcurrency = 32
 
 // Aggregate 窗口真实聚合:逐 topic DescribeHistogramV1 拉原生分桶,按 bucketSec
 // 归并到对齐桶(跨源/跨云步长一致,与联邦逐桶求和口径对齐)。Total = 分桶求和。
@@ -71,9 +73,19 @@ func (p *provider) Aggregate(ctx context.Context, account *domain.CloudAccount, 
 	}
 
 	var (
-		mu    sync.Mutex
-		infos []tls.HistogramInfoV1
+		mu      sync.Mutex
+		infos   []tls.HistogramInfoV1
+		sample  []logquery.LogEntry
+		sampled int
+		// scanCovered/scanTotal 采样覆盖面(等距抽样的 topic 数/全部 topic 数),
+		// 写入 TopNNote 供消费方判断分布代表性。
+		scanCovered, scanTotal int
 	)
+	scanDim := isApp && (params.Dimension == "service" || params.Dimension == "trace_id" || params.Dimension == "level")
+	if scanDim && !metricIsCountVolc(params.Metric) {
+		// 采样行上非 count 指标不可信,与阿里扫描路径同口径诚实拒绝
+		scanDim = false
+	}
 	var wg sync.WaitGroup
 	sem := make(chan struct{}, histogramConcurrency)
 	for _, tgt := range targets {
@@ -107,15 +119,122 @@ func (p *provider) Aggregate(ctx context.Context, account *domain.CloudAccount, 
 			mu.Unlock()
 		}(tgt)
 	}
+	// 扫描型维度(app level/service/trace_id:无字段分析索引,SQL 分组不可
+	// 用):与分桶并发执行采样扇出(总墙钟 = max 而非 sum,挤进联邦 30s
+	// 预算),分组值来自窗口内采样,口径以 TopNNote 标注。
+	if scanDim {
+		// 采样目标等距抽样:dev 舰队 704 topic 多数窗口内无数据,采样量早停
+		// 失效(实测全扇出 40s+ 超联邦预算);按枚举序等距抽样公平覆盖服务
+		// 名字母域,避免按前缀偏置 TopN。抽样面并入 TopNNote。
+		scanTargets := targets
+		scanTotal = len(targets)
+		const maxScanTopics = 128
+		if len(targets) > maxScanTopics {
+			scanTargets = make([]topicRef, 0, maxScanTopics)
+			step := float64(len(targets)) / float64(maxScanTopics)
+			for i := 0; i < maxScanTopics; i++ {
+				scanTargets = append(scanTargets, targets[int(float64(i)*step)])
+			}
+		}
+		scanCovered = len(scanTargets)
+		const (
+			scanConcurrency  = 16
+			scanSampleCap    = 2000
+			scanPerTopicRows = 100
+		)
+		var scanWG sync.WaitGroup
+		scanSem := make(chan struct{}, scanConcurrency)
+		for _, tgt := range scanTargets {
+			if ctx.Err() != nil {
+				break // 联邦预算耗尽:停止新扇出,已在途的照常归并
+			}
+			mu.Lock()
+			full := sampled >= scanSampleCap
+			mu.Unlock()
+			if full {
+				break // 采样预算用尽,不再扇出
+			}
+			scanWG.Add(1)
+			go func(tgt topicRef) {
+				defer scanWG.Done()
+				mu.Lock()
+				if sampled >= scanSampleCap {
+					mu.Unlock()
+					return
+				}
+				mu.Unlock()
+				if p.indexKnownDisabled(tgt) {
+					return
+				}
+				scanSem <- struct{}{}
+				defer func() { <-scanSem }()
+				meta := logquery.LogMeta{
+					Cloud:       domain.CloudProviderVolcengine,
+					AccountID:   fmt.Sprintf("%d", p.account.ID),
+					AccountName: p.account.Name,
+					Region:      tgt.region,
+					ResourceID:  tgt.topicName,
+					Source:      tgt.region + "/" + tgt.topicID,
+				}
+				entries, err := p.searchLogs(context.Background(), tgt.region, tgt.topicID,
+					params.StartTime, params.EndTime, query, scanPerTopicRows, meta)
+				if err != nil {
+					p.logger.Warn("[logquery-volcengine] scan topn sample failed",
+						elog.String("topic", tgt.topicID), elog.FieldErr(err))
+					return
+				}
+				mu.Lock()
+				if sampled < scanSampleCap {
+					take := len(entries)
+					if take > scanSampleCap-sampled {
+						take = scanSampleCap - sampled
+					}
+					sample = append(sample, entries[:take]...)
+					sampled += take
+				}
+				mu.Unlock()
+			}(tgt)
+		}
+		scanWG.Wait()
+	}
 	wg.Wait()
 
 	buckets, total := flattenHistogram(infos, params.BucketSec*1000)
 	result := &logquery.AggregateResult{Total: total, Buckets: buckets}
 	if params.Dimension != "" {
-		// 火山自采 topic 无字段分析索引,任意维度分组都取不到
-		result.TopNSkipReason = "火山源无字段分析索引,不支持该维度分组"
+		if scanDim {
+			result.TopN = logquery.TopNFromEntries(sample, params.Dimension, params.TopNLimit)
+			switch {
+			case len(result.TopN) > 0:
+				result.TopNNote = fmt.Sprintf("TopN 基于窗口内采样 %d 条(等距抽样 %d/%d topic),非精确全量分布",
+					sampled, scanCovered, scanTotal)
+			case sampled == 0:
+				result.TopNSkipReason = "维度 " + params.Dimension + " 窗口内无采样条目"
+			default:
+				result.TopNSkipReason = "维度 " + params.Dimension + " 采样条目均无该维度值"
+			}
+		} else {
+			// 火山源无字段分析索引,该维度取不到(SQL 路径不存在)
+			result.TopNSkipReason = "火山源无字段分析索引,不支持该维度分组"
+		}
 	}
 	return result, nil
+}
+
+// metricIsCountVolc 火山侧 count 指标判定(仅 count 可用于采样分组)。
+func metricIsCountVolc(metric string) bool {
+	return metric == "" || metric == "count"
+}
+
+// AggregatableFields 可聚合字段(接口实现):火山无 SQL 分组引擎,app 类型
+// 的 level/service/trace_id 经"窗口采样 + 内存分组"路径聚合(口径见
+// AggregateResult.TopNNote);访问日志类型无字典维度,空集(聚合入口显式
+// 标注不支持,不静默)。
+func (p *provider) AggregatableFields(ctx context.Context, _ *domain.CloudAccount) ([]string, error) {
+	if p.logType == logquery.LogTypeApp {
+		return []string{"level", "service", "trace_id"}, nil
+	}
+	return nil, nil
 }
 
 // flattenHistogram 把 DescribeHistogramV1 原始分桶归并到 bucketMs 对齐的桶。

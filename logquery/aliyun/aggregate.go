@@ -1,4 +1,4 @@
-// 聚合 SQL 构造(plan.md §8):SLS 检索|SQL 管道下推,窗口内真实统计。
+﻿// 聚合 SQL 构造(plan.md §8):SLS 检索|SQL 管道下推,窗口内真实统计。
 // 纯函数,单测覆盖检索段拼接 / 分桶 / TopN / kind 字段映射。
 package aliyun
 
@@ -122,4 +122,18 @@ func buildAggregateTopNSQL(searchPart, dimExpr, metric string, limit int) string
 	}
 	return fmt.Sprintf("%s | select %s as k, count(1) as n, %s as v group by k order by v desc limit %d",
 		searchPart, dimExpr, metric, limit)
+}
+
+// scanDimension 是否为扫描型维度:列无 doc_value(如 kindApp 的 service/
+// trace_id),SQL group by 恒 null(实测),但明细行里字段值可读——走
+// "窗口内采样 + 内存分组"路径,口径以 TopNNote 标注。
+func scanDimension(kind mapperKind, dimension string) bool {
+	if kind != kindApp {
+		return false
+	}
+	switch dimension {
+	case "service", "trace_id":
+		return true
+	}
+	return false
 }

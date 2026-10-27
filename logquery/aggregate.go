@@ -5,7 +5,9 @@ package logquery
 
 import (
 	"context"
+	"fmt"
 	"slices"
+	"sort"
 
 	"github.com/Havens-blog/e-cloudx-sdk/domain"
 )
@@ -85,6 +87,45 @@ type AggregateResult struct {
 	TopNSkipReason string
 	// SkipFilterReason 字段筛选不可下推时设置(该源整源跳过,否则计数失真)。
 	SkipFilterReason string
+	// TopNNote TopN 的口径说明(采样类 TopN 必设:窗口内最近优先采样,
+	// 非精确全量分布;精确 TopN 留空)。
+	TopNNote string
+}
+
+// TopNFromEntries 明细采样聚合:对已取回的日志条目按维度字段内存分组计数,
+// 返回降序 TopN。用于索引不支持 SQL group by 的维度(如 app 的 service 列
+// doc_value=false、火山无字段分析索引)——TopN 是窗口内"最近优先"采样的
+// 分布,调用方必须以 TopNNote 标注口径,不得冒充精确全量。
+// 维度取值走 entryFieldValue 同一映射(service/level/message/trace_id),
+// 空/缺失值不编组(不产出 "null"/"" 组)。metricIsCount=false 时本函数只产
+// count(采样行上求和/分位不可信),调用方不应把非 count 指标交给采样路径。
+func TopNFromEntries(entries []LogEntry, dimension string, limit int) []TopNItem {
+	if dimension == "" {
+		return nil
+	}
+	counts := make(map[string]int64)
+	for _, e := range entries {
+		v, ok := entryFieldValue(e, dimension)
+		if !ok || v == "" || v == "null" {
+			continue
+		}
+		counts[v]++
+	}
+	out := make([]TopNItem, 0, len(counts))
+	for name, c := range counts {
+		out = append(out, TopNItem{Name: name, Count: c, Value: float64(c)})
+	}
+	sort.Slice(out, func(i, j int) bool { return out[i].Value > out[j].Value })
+	if cap := AggregateTopN(limit); len(out) > cap {
+		out = out[:cap]
+	}
+	return out
+}
+
+// ScanTopNNote 采样型 TopN 的口径说明(跨 provider 共用一份措辞;配
+// AggregateResult.TopNNote 使用)。
+func ScanTopNNote(sampled int) string {
+	return fmt.Sprintf("TopN 基于窗口内最近优先采样 %d 条(跨源可能有截断),非精确全量分布", sampled)
 }
 
 // Aggregator 可选能力接口:窗口内真实聚合。未实现的 provider(S3 文件类、
