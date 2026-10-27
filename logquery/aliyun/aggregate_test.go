@@ -130,10 +130,10 @@ func TestDimensionExprPassthrough(t *testing.T) {
 		want string
 		ok   bool
 	}{
-		{kindWAF3, "client_ip", "real_client_ip", true},  // 归一化映射优先
+		{kindWAF3, "client_ip", "real_client_ip", true},      // 归一化映射优先
 		{kindWAF3, "real_client_ip", "real_client_ip", true}, // 原始列透传
-		{kindDCDN, "user_agent", "user_agent", true},     // 任意列名
-		{kindDCDN, "status; drop table", "", false},      // 注入面
+		{kindDCDN, "user_agent", "user_agent", true},         // 任意列名
+		{kindDCDN, "status; drop table", "", false},          // 注入面
 		{kindDCDN, "host | select", "", false},
 		{kindDCDN, "", "", true}, // 缺省回退语义
 	}
@@ -228,5 +228,16 @@ func TestAggregateBucketRoundTrip(t *testing.T) {
 	}
 	if got := logquery.PickBucketSec(0, 30*86400_000); got != 86400 {
 		t.Errorf("PickBucketSec(30d) = %d, want 86400(封顶)", got)
+	}
+}
+
+// TestScanDimension 扫描型维度判定:kindApp 的 service/trace_id 走采样分组,
+// 其余维度/kind 不走。
+func TestScanDimension(t *testing.T) {
+	if !scanDimension(kindApp, "service") || !scanDimension(kindApp, "trace_id") {
+		t.Fatal("kindApp service/trace_id 应为扫描型")
+	}
+	if scanDimension(kindApp, "level") || scanDimension(kindDCDN, "domain") {
+		t.Fatal("非扫描型维度误判")
 	}
 }

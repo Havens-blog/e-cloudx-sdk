@@ -1,4 +1,4 @@
-// 可聚合字段探测:分组聚合维度白名单。SLS 聚合硬约束 = 分组列必须开过 KV
+﻿// 可聚合字段探测:分组聚合维度白名单。SLS 聚合硬约束 = 分组列必须开过 KV
 // 分析索引(GetIndex → Index.Keys),否则 Group By 报 400 "列不存在或非索引"。
 // 维度下拉此前展示 /types 全量字段字典,用户盲选未开索引字段反复撞
 // TopNSkipReason。这里对每日志类型求各 logstore 索引并集,产出真正可聚合
@@ -13,8 +13,8 @@ import (
 	"sort"
 	"sync"
 
-	"github.com/Havens-blog/e-cloudx-sdk/logquery"
 	"github.com/Havens-blog/e-cloudx-sdk/domain"
+	"github.com/Havens-blog/e-cloudx-sdk/logquery"
 	"github.com/gotomicro/ego/core/elog"
 )
 
@@ -111,9 +111,13 @@ func aggregatableFieldsFromIndexes(logType logquery.LogType, indexed map[string]
 			if seen[field] {
 				continue
 			}
-			// 仅筛选不可分组字段(doc_value=false,group by 恒 null):不进
-			// 可聚合白名单,避免用户盲选后撞 null 组。
-			if filterOnlyDims[src.kind][field] {
+			// 仅筛选不可分组字段(doc_value=false,SQL group by 恒 null):
+			// 现走"窗口采样 + 内存分组"路径(scanDimension/TopNFromEntries,
+			// 口径以 TopNNote 标注),重新纳入可聚合白名单——app 的
+			// service/trace_id 是 RCA 核心分组维度,字典需声明可用。
+			// 未纳入扫描路径的 filterOnly 字段(如有新增)仍排除,避免用户
+			// 盲选后撞 null 组。
+			if filterOnlyDims[src.kind][field] && !scanDimension(src.kind, field) {
 				continue
 			}
 			if identifierLike(col) && !indexed[col] {

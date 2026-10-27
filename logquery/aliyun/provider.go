@@ -1,4 +1,4 @@
-// Package aliyun 阿里云日志查询 provider(Phase 1)。
+﻿// Package aliyun 阿里云日志查询 provider(Phase 1)。
 //
 // Phase 0 实测(source-status.md):阿里侧全部日志已汇聚 SLS,无需碰
 // Kafka/日志文件包;每账号 8 类源按固定 catalog 查询:
@@ -19,8 +19,8 @@ import (
 	"sync"
 	"time"
 
-	"github.com/Havens-blog/e-cloudx-sdk/logquery"
 	"github.com/Havens-blog/e-cloudx-sdk/domain"
+	"github.com/Havens-blog/e-cloudx-sdk/logquery"
 	sls "github.com/aliyun/aliyun-log-go-sdk"
 	"github.com/gotomicro/ego/core/elog"
 )
@@ -597,6 +597,9 @@ func (p *provider) Aggregate(ctx context.Context, account *domain.CloudAccount, 
 		if r.TopNSkipReason != "" && merged.TopNSkipReason == "" {
 			merged.TopNSkipReason = r.TopNSkipReason
 		}
+		if r.TopNNote != "" && merged.TopNNote == "" {
+			merged.TopNNote = r.TopNNote
+		}
 	}
 	sort.Slice(merged.Buckets, func(i, j int) bool {
 		return merged.Buckets[i].Timestamp < merged.Buckets[j].Timestamp
@@ -677,6 +680,12 @@ func (p *provider) aggregateStore(ctx context.Context, src slsSource, logstore s
 	// TopN 维度:自定义 dimension 优先,缺省回退 kind 默认维度(现行为兼容)
 	dim := aggregateTopNExpr(src.kind)
 	if params.Dimension != "" {
+		// 扫描型维度(kindApp service/trace_id:列索引 doc_value=false,SQL
+		// group by 恒 null,实测证):走明细采样内存分组,口径如实标注,
+		// 不再拒绝——"按服务统计错误 TopN"正是 RCA 的核心消费面。
+		if scanDimension(src.kind, params.Dimension) {
+			return p.aggregateStoreScanTopN(ctx, src, logstore, searchPart, from, to, params, result)
+		}
 		expr, ok := dimensionExpr(src.kind, params.Dimension)
 		if !ok {
 			result.TopNSkipReason = "维度 " + params.Dimension + " 该源不支持"
@@ -718,17 +727,97 @@ func (p *provider) aggregateStore(ctx context.Context, src slsSource, logstore s
 		return result
 	}
 	for _, row := range resp.Logs {
-		if k := row["k"]; k != "" {
-			item := logquery.TopNItem{Name: k, Count: logquery.Int(row["n"])}
-			if metricIsCount(params.Metric) {
-				item.Value = float64(item.Count)
-			} else if v, err2 := strconv.ParseFloat(row["v"], 64); err2 == nil {
-				item.Value = v
-			}
-			result.TopN = append(result.TopN, item)
+		// SQL NULL 组(列无分析索引的行,如部分 store 的 level)SLS 以字面
+		// 字符串 "null" 返回,曾穿透 k!="" 守卫产出空名/“null”名 TopN 条目
+		// (实测 119051/119266 全落空组)——与空名一并跳过,不计入分布。
+		k := row["k"]
+		if k == "" || k == "null" {
+			continue
 		}
+		item := logquery.TopNItem{Name: k, Count: logquery.Int(row["n"])}
+		if metricIsCount(params.Metric) {
+			item.Value = float64(item.Count)
+		} else if v, err2 := strconv.ParseFloat(row["v"], 64); err2 == nil {
+			item.Value = v
+		}
+		result.TopN = append(result.TopN, item)
 	}
 	return result
+}
+
+// scanSampleRowsPerStore 单 store 采样行预算(2 页):扫描型维度的分组值来自
+// 采样,跨 store 归并后由 TopNNote 标注口径。
+const scanSampleRowsPerStore = 200
+
+// aggregateStoreScanTopN 扫描型维度 TopN(kindApp service/trace_id):窗口内
+// "最近优先"采样明细,mapEntry 映射后按维度内存分组。非精确聚合,但这是不改
+// 云侧索引配置前提下该维度唯一可用的分组路径;分桶与精确总数不受影响。
+func (p *provider) aggregateStoreScanTopN(ctx context.Context, src slsSource, logstore, searchPart string, from, to int64, params logquery.AggregateParams, result *logquery.AggregateResult) *logquery.AggregateResult {
+	// 非 count 指标在采样行上求和/分位不可信,诚实拒绝(精确维度不受此限)
+	if !metricIsCount(params.Metric) {
+		result.TopNSkipReason = "采样型维度 " + params.Dimension + " 仅支持 count 指标"
+		return result
+	}
+	client := p.clientFor(src.region)
+	rows, err := fetchSampleRows(client, src.project, logstore, searchPart, from, to, scanSampleRowsPerStore)
+	if err != nil {
+		p.logger.Warn("[logquery-aliyun] scan topn sample failed",
+			elog.String("project", src.project), elog.String("logstore", logstore), elog.FieldErr(err))
+		result.TopNSkipReason = "维度 " + params.Dimension + " 采样失败:" + briefErr(err)
+		return result
+	}
+	meta := logquery.LogMeta{
+		Cloud:       domain.CloudProviderAliyun,
+		AccountID:   fmt.Sprintf("%d", p.account.ID),
+		AccountName: p.account.Name,
+		Region:      src.region,
+		ResourceID:  logstore,
+		Source:      src.project + "/" + logstore,
+	}
+	entries := make([]logquery.LogEntry, 0, len(rows))
+	for _, raw := range rows {
+		if e := mapEntry(src.kind, meta, raw); e != nil {
+			entries = append(entries, e)
+		}
+	}
+	result.TopN = logquery.TopNFromEntries(entries, params.Dimension, params.TopNLimit)
+	switch {
+	case len(result.TopN) > 0:
+		result.TopNNote = logquery.ScanTopNNote(len(entries))
+	case len(entries) == 0:
+		result.TopNSkipReason = "维度 " + params.Dimension + " 窗口内无采样条目"
+	default:
+		result.TopNSkipReason = "维度 " + params.Dimension + " 采样条目均无该维度值"
+	}
+	return result
+}
+
+// fetchSampleRows 取样拉取(检索段直查,无 SQL 管道):扫描型维度 TopN 的
+// 数据源。SLS 单次 Lines<=100,按 offset 翻页凑 rows 条;降序(最近优先)。
+func fetchSampleRows(client *sls.Client, project, logstore, query string, from, to int64, rows int) ([]map[string]string, error) {
+	var all []map[string]string
+	offset := int64(0)
+	const pageSize = 100
+	for int64(len(all)) < int64(rows) {
+		resp, err := client.GetLogsV2(project, logstore, &sls.GetLogRequest{
+			From: from, To: to, Query: query, Lines: pageSize, Reverse: true, Offset: offset,
+		})
+		if err != nil {
+			return nil, err
+		}
+		if resp == nil || len(resp.Logs) == 0 {
+			break
+		}
+		all = append(all, resp.Logs...)
+		if len(resp.Logs) < pageSize {
+			break
+		}
+		offset += int64(len(resp.Logs))
+	}
+	if int64(len(all)) > int64(rows) {
+		all = all[:rows]
+	}
+	return all, nil
 }
 
 // fetchLogs 单 logstore 分页拉取(SLS 单次 Lines<=100)。
