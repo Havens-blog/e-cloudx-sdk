@@ -23,6 +23,10 @@ func aggregateTopNExpr(kind mapperKind) string {
 		return "name" // CEF 规则名字段(映射层的 rule_name)
 	case kindALB:
 		return "http_host"
+	case kindK8sEvent:
+		// 缺省维度 = level(Warning/Normal 分布;SDK 全链路最常用的统计入口)。
+		// 外层 level 列 doc_value=true(SQL group by 实测可用),无需采样路径。
+		return "level"
 	default:
 		// kindApp 无默认 TopN 维度:document_type(服务列)索引 doc_value=false,
 		// SQL group by 恒 null(实测),诚实跳过 TopN;趋势分桶与精确总数

@@ -1,4 +1,4 @@
-// 阿里云字段筛选/分组维度/聚合指标的列映射与检索段编译。
+﻿// 阿里云字段筛选/分组维度/聚合指标的列映射与检索段编译。
 // 归一化字段 → SLS 原始列(mapper.go 同源;只收录单一列、无链式回退的字段,
 // 保证 eq/前缀/包含语义可精确下推)。缓存命中/边缘节点等跨字段归一字段
 // 不在列映射内 — 明细由 EntryMatches 兜底,聚合下推时该字段(源)显式跳过。
@@ -58,6 +58,27 @@ var dimColumnExpr = map[mapperKind]map[string]string{
 		// 实测 group by 全 null),仅作检索过滤列 —— 分组维度见 filterOnlyDims。
 		"service": "document_type", "level": "level", "trace_id": "trace_id",
 	},
+	kindK8sEvent: {
+		// K8s 事件(2026-10-27 k8s-log-<id>/k8s-event 索引实测):外层 level
+		// 单列可检索可分组;namespace/reason/kind/object 在 eventId JSON 子键
+		// (索引 30 键全 doc_value),检索走点路径(见 dimSearchExpr),分组走
+		// json_extract_scalar(见 dimGroupExpr)——两个表达式形态不同,分轨。
+		"level": "level",
+	},
+}
+
+// dimSearchExpr 仅检索下推列(filterSearchPart 优先于 dimColumnExpr):
+// K8s 事件的 JSON 子键检索语法 = 点路径(eventId.reason: "OOMKilled",
+// 索引已建子键),与 SQL 分组的 json_extract_scalar 不同形态,故单独一表。
+var dimSearchExpr = map[mapperKind]map[string]string{
+	kindK8sEvent: {
+		"level":     "level",
+		"namespace": "eventId.involvedObject.namespace",
+		"reason":    "eventId.reason",
+		"kind":      "eventId.involvedObject.kind",
+		"object":    "eventId.involvedObject.name",
+		"cluster":   "cluster_id",
+	},
 }
 
 // filterOnlyDims 仅可作检索过滤、不可作 SQL 分组维度的字段(kindApp 实测:
@@ -95,6 +116,14 @@ var dimGroupExpr = map[mapperKind]map[string]string{
 	},
 	kindAkamaiWAF: {
 		"action": "act", "severity": "severity",
+	},
+	kindK8sEvent: {
+		// JSON 子键分组(实测 json_extract_scalar 语法可下推:reason TopN
+		// FailedGetScale=2016 等 8 组真实返回);level 走 dimColumnExpr 单列。
+		"namespace": "json_extract_scalar(eventId, '$.involvedObject.namespace')",
+		"reason":    "json_extract_scalar(eventId, '$.reason')",
+		"kind":      "json_extract_scalar(eventId, '$.involvedObject.kind')",
+		"object":    "json_extract_scalar(eventId, '$.involvedObject.name')",
 	},
 }
 
@@ -146,6 +175,8 @@ var metricExpr = map[mapperKind]map[string]string{
 	kindAkamaiWAF: {"count": "count(1)"},
 	// kindApp 业务日志无延迟/字节量纲,仅 count(RCA GetLogCount 走此路)
 	kindApp: {"count": "count(1)"},
+	// K8s 事件无延迟/字节量纲,仅 count(事件次数即计数语义)
+	kindK8sEvent: {"count": "count(1)"},
 }
 
 // filterSearchPart 编译字段筛选为 SLS 检索段(多条件 AND;返回 false =
@@ -153,7 +184,10 @@ var metricExpr = map[mapperKind]map[string]string{
 // 语法对齐 SLS 键检索:数字字面量不引号,其余短语引号;contain 用通配 *v*,
 // prefix 用 v*,neq 用 not。
 func filterSearchPart(kind mapperKind, filters []logquery.FieldFilter) (string, bool) {
-	cols := dimColumnExpr[kind]
+	cols := dimSearchExpr[kind]
+	if cols == nil {
+		cols = dimColumnExpr[kind]
+	}
 	var parts []string
 	for _, f := range filters {
 		col, ok := cols[f.Field]

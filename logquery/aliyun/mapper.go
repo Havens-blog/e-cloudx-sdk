@@ -1,6 +1,7 @@
-package aliyun
+﻿package aliyun
 
 import (
+	"encoding/json"
 	"math"
 	"net/url"
 	"strconv"
@@ -21,6 +22,7 @@ const (
 	kindAkamaiCDN  mapperKind = "akamai_cdn"  // Akamai CDN(自采,69 字段)
 	kindAkamaiWAF  mapperKind = "akamai_waf"  // Akamai WAF(自采,CEF 展开为字段)
 	kindApp        mapperKind = "app"         // 应用业务日志(jlc-prod-log <service>-business store,java logback 实测 schema)
+	kindK8sEvent   mapperKind = "k8s_event"   // K8s 事件日志(k8s-log-<clusterId> project 的 k8s-event store,ACK eventer 实测 schema)
 )
 
 // mapEntry 按 kind 把一条 SLS 原始日志映射为统一模型(Raw 全量保留,ADR D3)。
@@ -51,6 +53,8 @@ func mapEntry(kind mapperKind, m logquery.LogMeta, raw map[string]string) logque
 		return mapAkamaiWAF(m, r, raw)
 	case kindApp:
 		return mapApp(m, r, raw)
+	case kindK8sEvent:
+		return mapK8sEvent(m, r, raw)
 	default:
 		return nil
 	}
@@ -79,6 +83,80 @@ func mapApp(m logquery.LogMeta, r map[string]any, raw map[string]string) *logque
 		TraceID:   raw["trace_id"],
 		Raw:       r,
 	}
+}
+
+// k8sEventPayload eventId 列的 K8s 事件 JSON 结构(2026-10-27 实测样本;
+// 宽松解析,缺失字段零值容忍,解析失败整体降级为原文截断)。
+type k8sEventPayload struct {
+	Metadata struct {
+		Name      string `json:"name"`
+		Namespace string `json:"namespace"`
+	} `json:"metadata"`
+	InvolvedObject struct {
+		Kind      string `json:"kind"`
+		Namespace string `json:"namespace"`
+		Name      string `json:"name"`
+	} `json:"involvedObject"`
+	Reason         string `json:"reason"`
+	Message        string `json:"message"`
+	Type           string `json:"type"` // Warning / Normal
+	Count          int64  `json:"count"`
+	FirstTimestamp string `json:"firstTimestamp"`
+	LastTimestamp  string `json:"lastTimestamp"`
+}
+
+// mapK8sEvent K8s 事件日志 -> K8sEventLogEntry(2026-10-27 ACK eventer 实测:
+// 外层 clusterId/clusterName/level + eventId 完整事件 JSON)。level 归一:
+// Warning→warning,Normal→info(k8s Normal 事件即常规信息流,对齐 RCA 统一
+// 水位语义);message 组合 "<reason>: <message>",eventId 解析失败降级原文截断
+// (旧集群 eventer 版本差异可能导致 schema 漂移,Raw 永远兜底)。
+func mapK8sEvent(m logquery.LogMeta, r map[string]any, raw map[string]string) *logquery.K8sEventLogEntry {
+	clusterID := strings.TrimPrefix(m.ResourceID, "k8s-log-")
+	if clusterID == m.ResourceID {
+		clusterID = raw["clusterId"] // Meta 未带 project 前缀时回退行字段
+	}
+	e := &logquery.K8sEventLogEntry{
+		Meta:      m,
+		Timestamp: logquery.ParseTimeMs(raw["__time__"]),
+		ClusterID: clusterID,
+		Cluster:   raw["clusterName"],
+		Level:     logquery.NormalizeLevel(raw["level"]),
+		Raw:       r,
+	}
+	if e.Level == "normal" {
+		e.Level = "info" // k8s Normal 事件对齐统一水位语义
+	}
+	var payload k8sEventPayload
+	if err := json.Unmarshal([]byte(raw["eventId"]), &payload); err != nil {
+		// 解析失败:正文回退原文截断,typed 字段留空(缺失容忍,不编造)
+		msg := raw["eventId"]
+		if len(msg) > 512 {
+			msg = msg[:512]
+		}
+		e.Message = msg
+		return e
+	}
+	e.Namespace = payload.InvolvedObject.Namespace
+	if e.Namespace == "" {
+		e.Namespace = payload.Metadata.Namespace
+	}
+	e.Kind = payload.InvolvedObject.Kind
+	e.Object = payload.InvolvedObject.Name
+	if e.Object == "" {
+		e.Object = payload.Metadata.Name
+	}
+	e.Reason = payload.Reason
+	e.Count = payload.Count
+	e.FirstSeen = logquery.ParseTimeMs(payload.FirstTimestamp)
+	e.LastSeen = logquery.ParseTimeMs(payload.LastTimestamp)
+	msg := payload.Message
+	if payload.Reason != "" && msg != "" {
+		msg = payload.Reason + ": " + msg
+	} else if msg == "" {
+		msg = payload.Reason
+	}
+	e.Message = msg
+	return e
 }
 
 // mapALB 阿里 ALB 访问日志 -> SLBLogEntry(field-mapping.md §一.1)。
