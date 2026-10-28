@@ -35,16 +35,26 @@ func (p *provider) Aggregate(ctx context.Context, account *domain.CloudAccount, 
 		query = q
 	}
 	isApp := p.logType == logquery.LogTypeApp
+	isK8s := p.logType == logquery.LogTypeK8sEvent
 	if len(params.Filters) > 0 {
-		if !isApp {
+		if isK8s {
+			// K8s 事件:level(->type 原值)与 reason 等值可下推;
+			// 其余过滤不可下推,整源跳过避免计数失真(诚实优先)
+			var pushable bool
+			query, pushable = k8sEventPushdownQuery(query, params.Filters)
+			if !pushable {
+				return nil, fmt.Errorf("volcengine: K8s 事件仅 level/reason 等值可下推聚合(跳过该源,避免计数失真)")
+			}
+		} else if !isApp {
 			return nil, fmt.Errorf("volcengine: 字段筛选无法下推聚合(跳过该源,避免计数失真)")
-		}
-		// 应用日志:level 等值可下推(TLS key-value 检索大小写不敏感,实测证);
-		// 其余过滤不可下推仍整源跳过,避免计数失真(诚实优先)。
-		var pushable bool
-		query, pushable = appPushdownQuery(query, params.Filters)
-		if !pushable {
-			return nil, fmt.Errorf("volcengine: 存在无法下推的字段筛选(仅 level 等值可下推),跳过该源避免计数失真")
+		} else {
+			// 应用日志:level 等值可下推(TLS key-value 检索大小写不敏感,实测证);
+			// 其余过滤不可下推仍整源跳过,避免计数失真(诚实优先)。
+			var pushable bool
+			query, pushable = appPushdownQuery(query, params.Filters)
+			if !pushable {
+				return nil, fmt.Errorf("volcengine: 存在无法下推的字段筛选(仅 level 等值可下推),跳过该源避免计数失真")
+			}
 		}
 	}
 	if params.BucketSec <= 0 {
@@ -71,6 +81,9 @@ func (p *provider) Aggregate(ctx context.Context, account *domain.CloudAccount, 
 		}
 		targets = p.appTopics(ctx, want)
 	}
+	if isK8s {
+		targets = p.k8sEventTopics(ctx, want)
+	}
 
 	var (
 		mu      sync.Mutex
@@ -82,6 +95,11 @@ func (p *provider) Aggregate(ctx context.Context, account *domain.CloudAccount, 
 		scanCovered, scanTotal int
 	)
 	scanDim := isApp && (params.Dimension == "service" || params.Dimension == "trace_id" || params.Dimension == "level")
+	if isK8s && k8sEventScanDims[params.Dimension] {
+		// K8s 事件:火山无 SQL 分组,全部维度走窗口采样(与 app 同口径,
+		// TopNNote 标注采样覆盖面)
+		scanDim = true
+	}
 	if scanDim && !metricIsCountVolc(params.Metric) {
 		// 采样行上非 count 指标不可信,与阿里扫描路径同口径诚实拒绝
 		scanDim = false
@@ -233,6 +251,10 @@ func metricIsCountVolc(metric string) bool {
 func (p *provider) AggregatableFields(ctx context.Context, _ *domain.CloudAccount) ([]string, error) {
 	if p.logType == logquery.LogTypeApp {
 		return []string{"level", "service", "trace_id"}, nil
+	}
+	if p.logType == logquery.LogTypeK8sEvent {
+		// 扁平 schema 直取(实测字段集);采样口径,TopNNote 标注
+		return []string{"cluster", "kind", "level", "namespace", "object", "reason"}, nil
 	}
 	return nil, nil
 }
