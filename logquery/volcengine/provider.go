@@ -1,4 +1,4 @@
-// Package volcengine 火山引擎日志查询 provider。
+﻿// Package volcengine 火山引擎日志查询 provider。
 //
 // 火山云日志均投递到 TLS(火山日志服务)。分两类注册:
 //   - SLB(`*_lb_access`,原生 schema loadbalancer_id/listener_id)= 火山 ALB 产品日志;
@@ -93,9 +93,11 @@ func init() {
 	logquery.RegisterProvider(domain.CloudProviderVolcengine, logquery.LogTypeSLB, newProvider(logquery.LogTypeSLB))
 	logquery.RegisterProvider(domain.CloudProviderVolcengine, logquery.LogTypeAccess, newProvider(logquery.LogTypeAccess))
 	logquery.RegisterProvider(domain.CloudProviderVolcengine, logquery.LogTypeApp, newProvider(logquery.LogTypeApp))
+	logquery.RegisterProvider(domain.CloudProviderVolcengine, logquery.LogTypeK8sEvent, newProvider(logquery.LogTypeK8sEvent))
 	logquery.RegisterProvider(domain.CloudProviderVolcano, logquery.LogTypeSLB, newProvider(logquery.LogTypeSLB))
 	logquery.RegisterProvider(domain.CloudProviderVolcano, logquery.LogTypeAccess, newProvider(logquery.LogTypeAccess))
 	logquery.RegisterProvider(domain.CloudProviderVolcano, logquery.LogTypeApp, newProvider(logquery.LogTypeApp))
+	logquery.RegisterProvider(domain.CloudProviderVolcano, logquery.LogTypeK8sEvent, newProvider(logquery.LogTypeK8sEvent))
 }
 
 func newProvider(logType logquery.LogType) logquery.ProviderCreator {
@@ -370,8 +372,13 @@ func sourceLabel(topicName string) string {
 // 首次加载未缓存源乐观标 enabled,后台预热完成后刷新即看到真实的 false。
 func (p *provider) ListLogSources(ctx context.Context, account *domain.CloudAccount) ([]logquery.LogSource, error) {
 	refs := p.accessTopics(ctx, nil)
-	if p.logType == logquery.LogTypeApp {
+	isApp := p.logType == logquery.LogTypeApp
+	isK8s := p.logType == logquery.LogTypeK8sEvent
+	if isApp {
 		refs = p.appTopics(ctx, nil)
+	}
+	if isK8s {
+		refs = p.k8sEventTopics(ctx, nil)
 	}
 	seen := make(map[string]bool, len(refs))
 	out := make([]logquery.LogSource, 0, len(refs))
@@ -391,6 +398,10 @@ func (p *provider) ListLogSources(ctx context.Context, account *domain.CloudAcco
 		if p.logType == logquery.LogTypeApp {
 			label = "App / " + appServiceOf(name)
 			note = "火山 TLS 应用业务日志(一服务一 topic)"
+		}
+		if isK8s {
+			label = "K8s 事件 / " + name
+			note = "火山 VKE 集群事件(扁平 schema;TopN 为采样口径)"
 		}
 		if !enabled {
 			note = "该 topic 未开启检索索引,查询/聚合不可用"
@@ -442,6 +453,10 @@ func (p *provider) Search(ctx context.Context, account *domain.CloudAccount, par
 		}
 		targets = p.appTopics(ctx, want)
 	}
+	if p.logType == logquery.LogTypeK8sEvent {
+		// 资源语义 = topic 名(K8s 事件 topic 数稳定,不额外收敛 cluster)
+		targets = p.k8sEventTopics(ctx, want)
+	}
 	query := "*"
 	if q := strings.TrimSpace(params.Query); q != "" && q != "*" {
 		query = q
@@ -450,6 +465,11 @@ func (p *provider) Search(ctx context.Context, account *domain.CloudAccount, par
 		// 应用日志检索式下推:level 等值(TLS key-value 大小写不敏感,单形态
 		// 全变体覆盖,实测证)与 query 合并;不可下推过滤仍留明细层 EntryMatches。
 		query, _ = appPushdownQuery(query, params.Filters)
+	}
+	if p.logType == logquery.LogTypeK8sEvent {
+		// K8s 事件下推:level(-> type 原值 Normal|Warning)与 reason 等值;
+		// 其余过滤留明细层 EntryMatches。
+		query, _ = k8sEventPushdownQuery(query, params.Filters)
 	}
 
 	results := make([][]logquery.LogEntry, len(targets))
@@ -539,9 +559,12 @@ func (p *provider) searchLogs(ctx context.Context, region, topicID string, start
 			break
 		}
 		for _, raw := range resp.Logs {
-			if p.logType == logquery.LogTypeApp {
+			switch p.logType {
+			case logquery.LogTypeApp:
 				out = append(out, mapApp(meta, raw))
-			} else {
+			case logquery.LogTypeK8sEvent:
+				out = append(out, mapK8sEvent(meta, raw))
+			default:
 				out = append(out, mapAccessLog(meta, raw))
 			}
 		}
