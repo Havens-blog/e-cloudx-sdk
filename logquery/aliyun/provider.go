@@ -298,6 +298,17 @@ func (p *provider) listK8sEventSources() []logquery.LogSource {
 	return out
 }
 
+// resourceIDFor 资源标识:通用为 logstore 名;K8s 事件例外 = 集群标识。
+// ACK 事件接入是一集群一 project(k8s-log-<clusterId>)、logstore 恒 k8s-event,
+// 资源语义是集群 —— 早期直接用 logstore 名会让前端"资源"列显示 k8s-event,
+// 且 mapper 推不出 ClusterID(实测页面:集群列空、资源列 k8s-event)。
+func resourceIDFor(kind mapperKind, project, logstore string) string {
+	if kind == kindK8sEvent {
+		return strings.TrimPrefix(project, "k8s-log-")
+	}
+	return logstore
+}
+
 // toSource catalog 条目 -> LogSource。
 func (p *provider) toSource(src slsSource, logstore string, enabled bool) logquery.LogSource {
 	return logquery.LogSource{
@@ -557,7 +568,7 @@ func (p *provider) Search(ctx context.Context, account *domain.CloudAccount, par
 			AccountID:   fmt.Sprintf("%d", p.account.ID),
 			AccountName: p.account.Name,
 			Region:      tgt.src.region,
-			ResourceID:  tgt.logstore,
+			ResourceID:  resourceIDFor(tgt.src.kind, tgt.src.project, tgt.logstore),
 			Source:      tgt.src.project + "/" + tgt.logstore,
 		}
 		for _, raw := range results[i] {
@@ -869,7 +880,7 @@ func (p *provider) aggregateStoreScanTopN(ctx context.Context, src slsSource, lo
 		AccountID:   fmt.Sprintf("%d", p.account.ID),
 		AccountName: p.account.Name,
 		Region:      src.region,
-		ResourceID:  logstore,
+		ResourceID:  resourceIDFor(src.kind, src.project, logstore),
 		Source:      src.project + "/" + logstore,
 	}
 	entries := make([]logquery.LogEntry, 0, len(rows))

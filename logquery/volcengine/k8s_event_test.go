@@ -82,6 +82,10 @@ func TestMapK8sEventVolc(t *testing.T) {
 	if e.Message != "Started: Started container elmo-buyer-web" {
 		t.Errorf("Message = %q", e.Message)
 	}
+	// 火山 schema 无 clusterName:集群列以 cluster_id 兜底(不空白)
+	if e.Cluster != e.ClusterID || e.Cluster == "" {
+		t.Errorf("Cluster 应回退 cluster_id,得到 cluster=%q id=%q", e.Cluster, e.ClusterID)
+	}
 }
 
 func TestMapK8sEventVolcWarning(t *testing.T) {

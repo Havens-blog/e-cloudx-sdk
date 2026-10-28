@@ -112,14 +112,23 @@ type k8sEventPayload struct {
 // (旧集群 eventer 版本差异可能导致 schema 漂移,Raw 永远兜底)。
 func mapK8sEvent(m logquery.LogMeta, r map[string]any, raw map[string]string) *logquery.K8sEventLogEntry {
 	clusterID := strings.TrimPrefix(m.ResourceID, "k8s-log-")
-	if clusterID == m.ResourceID {
-		clusterID = raw["clusterId"] // Meta 未带 project 前缀时回退行字段
+	// 资源标识 = 集群(provider 已把 meta.ResourceID 设为集群 ID / project 名);
+	// 仅当它缺失、或仍是 logstore 名(历史路径)时,才回退行内 clusterId 字段 ——
+	// 早期无条件回退会在行内无 clusterId(索引实测多数行无此字段)时清空集群
+	if clusterID == "" || clusterID == k8sEventStore {
+		clusterID = raw["clusterId"]
+	}
+	// 集群名回退:多数 k8s-event 行不含 clusterName 字段(索引实测),缺失时用
+	// 集群 ID 兜底 —— 否则前端"集群"列整列显示 —(实测页面)
+	cluster := raw["clusterName"]
+	if cluster == "" {
+		cluster = clusterID
 	}
 	e := &logquery.K8sEventLogEntry{
 		Meta:      m,
 		Timestamp: logquery.ParseTimeMs(raw["__time__"]),
 		ClusterID: clusterID,
-		Cluster:   raw["clusterName"],
+		Cluster:   cluster,
 		Level:     logquery.NormalizeLevel(raw["level"]),
 		Raw:       r,
 	}

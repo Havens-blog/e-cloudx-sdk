@@ -90,8 +90,9 @@ func mapK8sEvent(m logquery.LogMeta, raw map[string]any) *logquery.K8sEventLogEn
 		Meta:      m,
 		Timestamp: parseTimeField(raw["__time__"]),
 		ClusterID: clusterID,
-		// 火山事件无 clusterName 字段(实测 schema),集群名缺省留空,
-		// cluster 维度回退 cluster_id(消费方可按 resource 名读 topic)
+		// 火山事件 schema 无 clusterName(实测),集群名以 cluster_id 兜底,
+		// 避免前端"集群"列整列空白("资源"列已是事件 topic 名)
+		Cluster:   clusterID,
 		Namespace: logquery.Str(raw["metadata_namespace"]),
 		Kind:      logquery.Str(raw["involvedObject_kind"]),
 		Object:    logquery.Str(raw["involvedObject_name"]),

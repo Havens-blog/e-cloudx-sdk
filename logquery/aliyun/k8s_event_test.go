@@ -142,6 +142,37 @@ func TestK8sDimensionExpr(t *testing.T) {
 	}
 }
 
+func TestMapK8sEventClusterFallback(t *testing.T) {
+	// 多数 k8s-event 行不含 clusterName/clusterId(索引实测):
+	// 集群列回退 ClusterID,且 meta.ResourceID 两种形态都要能推出集群
+	for _, tc := range []struct{ resourceID, want string }{
+		{"k8s-log-c63a12de8d7844dc3a65a553718a37deb", "c63a12de8d7844dc3a65a553718a37deb"},
+		{"c63a12de8d7844dc3a65a553718a37deb", "c63a12de8d7844dc3a65a553718a37deb"}, // provider 新模式:ResourceID 即集群
+	} {
+		meta := logquery.LogMeta{ResourceID: tc.resourceID}
+		raw := k8sEventSampleRow(`{"reason":"Unhealthy","involvedObject":{"kind":"Pod","name":"p"},"type":"Warning"}`)
+		raw["clusterName"] = ""
+		delete(raw, "clusterId")
+		ke := mapEntry(kindK8sEvent, meta, raw).(*logquery.K8sEventLogEntry)
+		if ke.ClusterID != tc.want {
+			t.Errorf("ResourceID=%q 时 ClusterID = %q,期望 %q", tc.resourceID, ke.ClusterID, tc.want)
+		}
+		if ke.Cluster != ke.ClusterID {
+			t.Errorf("clusterName 缺失时 Cluster 应回退 ClusterID,得到 %q", ke.Cluster)
+		}
+	}
+}
+
+func TestResourceIDFor(t *testing.T) {
+	// K8s 事件资源语义 = 集群;其余类型仍为 logstore 名
+	if got := resourceIDFor(kindK8sEvent, "k8s-log-abc123", "k8s-event"); got != "abc123" {
+		t.Errorf("k8s 资源标识 = %q,期望 abc123", got)
+	}
+	if got := resourceIDFor(kindApp, "jlc-prod-log", "svc-business"); got != "svc-business" {
+		t.Errorf("非 k8s 资源标识 = %q,期望 logstore 名", got)
+	}
+}
+
 func TestEntryFieldValueK8sEvent(t *testing.T) {
 	e := &logquery.K8sEventLogEntry{
 		Cluster: "ali-jlc-transit-zone-k8s", ClusterID: "ccdf", Namespace: "prod",
