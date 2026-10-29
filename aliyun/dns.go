@@ -1,4 +1,4 @@
-﻿package aliyun
+package aliyun
 
 import (
 	"context"
@@ -140,6 +140,9 @@ func (a *DNSAdapter) ListRecords(ctx context.Context, domain types.DNSDomain) ([
 				Priority: int(r.Priority),
 				Line:     r.Line,
 				Status:   a.mapRecordStatus(r.Status),
+				// 权重：DescribeDomainRecords 返回 Record.Weight（负载均衡解析）。
+				// 无权重概念的记录云端返回 0 → NewDNSWeight 归一为 nil（上层展示 "-"）。
+				Weight: types.NewDNSWeight(r.Weight),
 			})
 		}
 
@@ -187,6 +190,11 @@ func (a *DNSAdapter) GetRecord(ctx context.Context, domain, recordID string) (*t
 
 // CreateRecord 创建解析记录
 func (a *DNSAdapter) CreateRecord(ctx context.Context, domain string, req types.CreateDNSRecordRequest) (*types.DNSRecord, error) {
+	// 权重写保护：阿里云 AddDomainRecord 请求结构体没有 Weight 参数（权重只能读）。
+	// 显式报错而非静默忽略，避免上层以为权重已生效。
+	if req.Weight != nil {
+		return nil, fmt.Errorf("aliyun: DNS 权重不支持写入（AddDomainRecord 无 Weight 参数，仅可读）")
+	}
 	client, err := a.createClient()
 	if err != nil {
 		return nil, fmt.Errorf("aliyun: create DNS client failed: %w", err)
@@ -222,6 +230,10 @@ func (a *DNSAdapter) CreateRecord(ctx context.Context, domain string, req types.
 
 // UpdateRecord 修改解析记录
 func (a *DNSAdapter) UpdateRecord(ctx context.Context, domain, recordID string, req types.UpdateDNSRecordRequest) (*types.DNSRecord, error) {
+	// 权重写保护：阿里云 UpdateDomainRecord 请求结构体没有 Weight 参数（权重只能读）。
+	if req.Weight != nil {
+		return nil, fmt.Errorf("aliyun: DNS 权重不支持修改（UpdateDomainRecord 无 Weight 参数，仅可读）")
+	}
 	client, err := a.createClient()
 	if err != nil {
 		return nil, fmt.Errorf("aliyun: create DNS client failed: %w", err)
