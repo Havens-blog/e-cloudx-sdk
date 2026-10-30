@@ -1,4 +1,4 @@
-﻿package logquery
+package logquery
 
 import (
 	"context"
@@ -32,6 +32,7 @@ type SearchParams struct {
 	EndTime   int64         `json:"end_time"`   // Unix 毫秒 UTC(含)
 	Query     string        `json:"query"`      // 原生检索式透传(各云语法由 provider 翻译;空=全量)
 	Limit     int           `json:"limit"`      // 单源上限(ADR D4:窗口内每源上限+截断标记)
+	Offset    int64         `json:"offset"`     // 可选:云引擎侧游标起点(导出分页用;0=从头)
 	Regions   []string      `json:"regions"`    // 可选:限定区域
 	Resources []string      `json:"resources"`  // 可选:限定资源(域名/LB ID/分发 ID)
 	Filters   []FieldFilter `json:"filters"`    // 字段筛选(映射后统一字段过滤,AND 叠加)
@@ -49,6 +50,13 @@ type LogProvider interface {
 	// Search 查询窗口内日志并映射为统一模型;entries 按时间倒序。
 	// 单源失败应返回 error(由联邦编排层隔离,不阻塞其他源)。
 	Search(ctx context.Context, account *domain.CloudAccount, params SearchParams) ([]LogEntry, error)
+}
+
+// LogExporter 可选导出能力:逐源分页流式拉取,不设 provider 级截断。
+// emit 每批回调映射后的条目;返回值 = 已导出总条数(跨源求和)。
+// 未实现该能力的 provider(如 S3 文件类)由调用方回退到 Search 采样。
+type LogExporter interface {
+	Export(ctx context.Context, account *domain.CloudAccount, params SearchParams, emit func([]LogEntry) error) (int, error)
 }
 
 // ProviderCreator 按云账号构造 provider(凭证解密后的 domain.CloudAccount)。

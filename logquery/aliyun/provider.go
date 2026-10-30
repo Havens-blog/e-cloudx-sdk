@@ -1,4 +1,4 @@
-﻿// Package aliyun 阿里云日志查询 provider(Phase 1)。
+// Package aliyun 阿里云日志查询 provider(Phase 1)。
 //
 // Phase 0 实测(source-status.md):阿里侧全部日志已汇聚 SLS,无需碰
 // Kafka/日志文件包;每账号 8 类源按固定 catalog 查询:
@@ -593,6 +593,121 @@ func (p *provider) Search(ctx context.Context, account *domain.CloudAccount, par
 	return entries, nil
 }
 
+// Export 分页导出:逐源按 SLS Offset 分页拉取,映射+字段筛选后分批回调 emit,
+// 不设 provider 级 3000 截断(总上限由调用方控制)。单源失败返回 error 中断。
+func (p *provider) Export(ctx context.Context, account *domain.CloudAccount, params logquery.SearchParams, emit func([]logquery.LogEntry) error) (int, error) {
+	if params.EndTime <= params.StartTime {
+		return 0, fmt.Errorf("aliyun logquery export: invalid time window")
+	}
+
+	// 目标收集与 Search 一致(区域/资源/k8s/mixedDomains 过滤);刻意复制,
+	// 避免动 Search 的临界路径。变更筛选语义时需两处同步。
+	resourceFilter := make(map[string]bool, len(params.Resources))
+	for _, r := range params.Resources {
+		resourceFilter[r] = true
+	}
+	regionFilter := make(map[string]bool, len(params.Regions))
+	for _, r := range params.Regions {
+		regionFilter[r] = true
+	}
+
+	type fetchTarget struct {
+		src      slsSource
+		logstore string
+	}
+	var targets []fetchTarget
+	if p.logType == logquery.LogTypeK8sEvent {
+		for _, src := range p.k8sEventTargets() {
+			if len(regionFilter) > 0 && !regionFilter[src.region] {
+				continue
+			}
+			clusterID := strings.TrimPrefix(src.project, "k8s-log-")
+			if len(resourceFilter) > 0 && !resourceFilter[clusterID] && !resourceFilter[src.project] {
+				continue
+			}
+			targets = append(targets, fetchTarget{src: src, logstore: k8sEventStore})
+		}
+	} else {
+		for _, src := range catalog {
+			if src.logType != p.logType {
+				continue
+			}
+			if len(regionFilter) > 0 && !regionFilter[src.region] {
+				continue
+			}
+			stores := []string{src.logstore}
+			if src.logstore == "" {
+				ls, _ := logstoreEnumCache.get(src.region+"/"+src.project, func() []string {
+					out, err := p.clientFor(src.region).ListLogStore(src.project)
+					if err != nil {
+						p.logger.Warn("[logquery-aliyun] export list logstores failed",
+							elog.String("project", src.project), elog.FieldErr(err))
+						return nil
+					}
+					return out
+				})
+				stores = filterCatalogStores(src.kind, ls)
+			}
+			for _, ls := range stores {
+				if !src.mixedDomains && len(resourceFilter) > 0 &&
+					!resourceFilter[ls] && !resourceFilter[src.project] &&
+					!(src.kind == kindApp && resourceFilter[appServiceOf(ls)]) {
+					continue
+				}
+				targets = append(targets, fetchTarget{src: src, logstore: ls})
+			}
+		}
+	}
+
+	const pageLimit = 500
+	total := 0
+	for _, tgt := range targets {
+		meta := logquery.LogMeta{
+			Cloud:       domain.CloudProviderAliyun,
+			AccountID:   fmt.Sprintf("%d", p.account.ID),
+			AccountName: p.account.Name,
+			Region:      tgt.src.region,
+			ResourceID:  resourceIDFor(tgt.src.kind, tgt.src.project, tgt.logstore),
+			Source:      tgt.src.project + "/" + tgt.logstore,
+		}
+		offset := int64(0)
+		for {
+			logs, err := p.fetchLogs(ctx, tgt.src, tgt.logstore, logquery.SearchParams{
+				StartTime: params.StartTime,
+				EndTime:   params.EndTime,
+				Query:     params.Query,
+				Offset:    offset,
+				Filters:   params.Filters,
+			}, pageLimit)
+			if err != nil {
+				return total, err
+			}
+			if len(logs) == 0 {
+				break
+			}
+			batch := make([]logquery.LogEntry, 0, len(logs))
+			for _, raw := range logs {
+				if e := mapEntry(tgt.src.kind, meta, raw); e != nil {
+					if logquery.EntryMatches(e, params.Filters) {
+						batch = append(batch, e)
+					}
+				}
+			}
+			if len(batch) > 0 {
+				if err := emit(batch); err != nil {
+					return total, err
+				}
+				total += len(batch)
+			}
+			if len(logs) < pageLimit {
+				break
+			}
+			offset += int64(len(logs))
+		}
+	}
+	return total, nil
+}
+
 // Aggregate 窗口内真实聚合(plan.md §8):每 logstore 两条检索|SQL——
 // 时间分桶(求和即精确总数)+ TopN(按 kind 维度),百万/千万级行下推
 // SLS 分析引擎,只回传分桶与分组结果。单 logstore 失败跳过并记日志。
@@ -937,7 +1052,7 @@ func (p *provider) fetchLogs(ctx context.Context, src slsSource, logstore string
 	to := params.EndTime / 1000
 	query := buildQuery(src.kind, params.Query)
 	var all []map[string]string
-	offset := int64(0)
+	offset := params.Offset
 	const pageSize = 100
 	for int64(len(all)) < int64(limit) {
 		resp, err := client.GetLogsV2(src.project, logstore, &sls.GetLogRequest{
