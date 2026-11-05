@@ -10,7 +10,7 @@ import (
 	"github.com/Havens-blog/e-cloudx-sdk"
 	"github.com/Havens-blog/e-cloudx-sdk/types"
 	"github.com/gotomicro/ego/core/elog"
-	"github.com/huaweicloud/huaweicloud-sdk-go-v3/core/auth/basic"
+	"github.com/huaweicloud/huaweicloud-sdk-go-v3/core/auth/global"
 	aadv1 "github.com/huaweicloud/huaweicloud-sdk-go-v3/services/aad/v1"
 	aadmodel "github.com/huaweicloud/huaweicloud-sdk-go-v3/services/aad/v1/model"
 	aadregion "github.com/huaweicloud/huaweicloud-sdk-go-v3/services/aad/v1/region"
@@ -51,7 +51,7 @@ func (a *DDOSAdapter) createClient(reg string) (*aadv1.AadClient, error) {
 		reg = a.defaultRegion
 	}
 
-	auth, err := basic.NewCredentialsBuilder().
+	auth, err := global.NewCredentialsBuilder().
 		WithAk(a.accessKeyID).
 		WithSk(a.accessKeySecret).
 		SafeBuild()
