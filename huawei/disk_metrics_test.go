@@ -1,4 +1,4 @@
-﻿package huawei
+package huawei
 
 import (
 	"context"
@@ -105,11 +105,18 @@ func TestMatchDiskDeviceDim(t *testing.T) {
 		dimValue string
 		want     bool
 	}{
-		{"f4bf6adf-1234-vda", true},         // 盘 ID 前缀 + 设备后缀(实盘主形态)
+		{"f4bf6adf-1234-vda", true},         // 盘 ID 前缀 + 设备后缀
 		{"f4bf6adf-1234-volume-volc", true}, // 盘 ID 前缀 + volume 形态
 		{"f4bf6adf-1234", true},             // 精确等于
 		{"other-uuid-vda", false},           // 无关盘
 		{"f4bf6adf-5678-vda", false},        // 不同盘 ID 前缀
+		// 实盘主形态(probe-report §1.2):<实例 UUID>-volume-<卷 UUID>
+		{"a1b2c3d4-0000-1111-2222-333344445555-volume-f4bf6adf-1234", true},
+		{"a1b2c3d4-0000-1111-2222-333344445555-volume-f4bf6adf-1234-vdb", true},
+		// 实例 UUID + 设备名形态不含卷 ID,无实例上下文时不得归属到任何卷
+		{"a1b2c3d4-0000-1111-2222-333344445555-vda", false},
+		// 卷 ID 前缀相同但更长,不得误配
+		{"a1b2c3d4-0000-1111-2222-333344445555-volume-f4bf6adf-12345", false},
 	}
 	for _, c := range cases {
 		if got := matchDiskDeviceDim(c.dimValue, "f4bf6adf-1234"); got != c.want {

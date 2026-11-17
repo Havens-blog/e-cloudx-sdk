@@ -1,4 +1,4 @@
-﻿package huawei
+package huawei
 
 import (
 	"context"
@@ -233,11 +233,28 @@ func listDiskDeviceDim(client cesDiskMetricClient, diskID, metricName string) (s
 }
 
 // matchDiskDeviceDim 设备序列维度值与盘匹配。实盘键形态(probe-report §1.2):
-// disk_name = <盘ID>-<设备名>(卷 UUID 前缀 + 设备后缀),故按
-// 「精确等于 / 盘ID+`-` 前缀」匹配,不能用用户命名或实例 UUID 匹配
-// (实例 UUID 形态序列属 SYS.ECS,且接口签名无实例上下文)。
+// SYS.EVS 的 disk_name 由 ECS Agent 按「实例 × 设备」上报,实盘有两种形态:
+//
+//  1. <实例 UUID>-<设备名>            例:f4bf6adf-…-vda(不含卷 ID)
+//  2. <实例 UUID>-volume-<卷 UUID>     例:f4bf6adf-…-volume-0681cc4c-…(含卷 ID)
+//
+// 接口签名只有卷 ID(没有实例上下文),故形态 1 与任何卷都没有可判定关系,必须判为
+// 未命中——把别人的序列算到这个盘上会产出错误的盘级指标;形态 2 才是可按卷归属的键,
+// 这里要求卷 ID 以独立「-volume-<卷ID>」段出现,避免 a-1234 误配 a-12345。
 func matchDiskDeviceDim(dimValue, diskID string) bool {
-	return dimValue == diskID || strings.HasPrefix(dimValue, diskID+"-")
+	if diskID == "" {
+		return false
+	}
+	if dimValue == diskID || strings.HasPrefix(dimValue, diskID+"-") {
+		return true
+	}
+	const volumeInfix = "-volume-"
+	idx := strings.Index(dimValue, volumeInfix+diskID)
+	if idx < 0 {
+		return false
+	}
+	rest := dimValue[idx+len(volumeInfix)+len(diskID):]
+	return rest == "" || strings.HasPrefix(rest, "-")
 }
 
 // huaweiDiskMetricCandidates 单次 BatchListMetricData 的候选指标(同维度 5 项:
