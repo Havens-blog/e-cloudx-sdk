@@ -1,4 +1,4 @@
-﻿package aliyun
+package aliyun
 
 import (
 	"context"
@@ -34,14 +34,37 @@ func NewOSSAdapter(accessKeyID, accessKeySecret, defaultRegion string, logger *e
 	}
 }
 
+// ossEndpoint 返回地域对应的 OSS 公网端点。
+func ossEndpoint(region string) string {
+	return fmt.Sprintf("oss-%s.aliyuncs.com", region)
+}
+
+// ossStatsRegion 决定「取某个桶的统计信息」该用哪个地域的端点。
+//
+// 阿里云 OSS 的 GetBucketStat 必须在**桶自身所在地域**的端点上调用:用其它地域的
+// 端点会返回 403 AccessDenied("The bucket you are attempting to access must be
+// addressed using the specified endpoint")。原实现一律用适配器的 defaultRegion,
+// 导致只要桶不在 defaultRegion 就永远取不到容量/对象数(线上实测 982 个桶里 700 个
+// 是 0)。
+//
+// 优先级:桶自身地域 → 本次列举使用的地域 → 适配器 defaultRegion。
+func ossStatsRegion(bucketRegion, listRegion, defaultRegion string) string {
+	if bucketRegion != "" {
+		return bucketRegion
+	}
+	if listRegion != "" {
+		return listRegion
+	}
+	return defaultRegion
+}
+
 // createClient 创建OSS客户端
 func (a *OSSAdapter) createClient(region string) (*oss.Client, error) {
 	if region == "" {
 		region = a.defaultRegion
 	}
 
-	endpoint := fmt.Sprintf("oss-%s.aliyuncs.com", region)
-	return oss.New(endpoint, a.accessKeyID, a.accessKeySecret)
+	return oss.New(ossEndpoint(region), a.accessKeyID, a.accessKeySecret)
 }
 
 // ListBuckets 获取存储桶列表
@@ -53,6 +76,21 @@ func (a *OSSAdapter) ListBuckets(ctx context.Context, region string) ([]types.OS
 
 	var buckets []types.OSSBucket
 	marker := ""
+
+	// statsClients 按地域缓存客户端:同一次列举内同地域的桶复用同一个客户端
+	// (oss.New 只装配配置不发请求,缓存省掉重复构造)。
+	statsClients := map[string]*oss.Client{}
+	statsClientFor := func(r string) (*oss.Client, error) {
+		if c, ok := statsClients[r]; ok {
+			return c, nil
+		}
+		c, err := a.createClient(r)
+		if err != nil {
+			return nil, err
+		}
+		statsClients[r] = c
+		return c, nil
+	}
 
 	for {
 		result, err := client.ListBuckets(oss.Marker(marker), oss.MaxKeys(100))
@@ -76,14 +114,25 @@ func (a *OSSAdapter) ListBuckets(ctx context.Context, region string) ([]types.OS
 				ossBucket.Tags = a.mapAliyunTags(tagResult.Tags)
 			}
 
-			// 获取 bucket 统计信息（存储大小和对象数量）
-			stats, err := a.GetBucketStats(ctx, bucket.Name)
+			// 获取 bucket 统计信息（存储大小和对象数量）。
+			// 必须用**桶自身地域**的端点:跨地域端点一律 403 AccessDenied
+			// ("must be addressed using the specified endpoint"),结果就是容量/
+			// 对象数永远为 0(详见 ossStatsRegion 注释)。
+			statsRegion := ossStatsRegion(ossBucket.Region, region, a.defaultRegion)
+			var stats *types.OSSBucketStats
+			statsClient, clientErr := statsClientFor(statsRegion)
+			if clientErr != nil {
+				err = clientErr
+			} else {
+				stats, err = a.getBucketStatsWithClient(statsClient, bucket.Name)
+			}
 			if err == nil && stats != nil {
 				ossBucket.ObjectCount = stats.ObjectCount
 				ossBucket.StorageSize = stats.StorageSize
 			} else {
 				a.logger.Warn("获取OSS存储桶统计信息失败",
 					elog.String("bucket", bucket.Name),
+					elog.String("region", statsRegion),
 					elog.FieldErr(err))
 			}
 
@@ -115,11 +164,12 @@ func (a *OSSAdapter) GetBucket(ctx context.Context, bucketName string) (*types.O
 
 	bucket := a.convertBucketInfoToOSSBucket(result.BucketInfo)
 
-	// 获取bucket统计信息
-	stats, err := a.GetBucketStats(ctx, bucketName)
-	if err == nil && stats != nil {
-		bucket.ObjectCount = stats.ObjectCount
-		bucket.StorageSize = stats.StorageSize
+	// 获取bucket统计信息:用桶自身地域的端点(跨地域端点 403,见 ossStatsRegion)。
+	if statsClient, clientErr := a.createClient(bucket.Region); clientErr == nil {
+		if stats, statsErr := a.getBucketStatsWithClient(statsClient, bucketName); statsErr == nil && stats != nil {
+			bucket.ObjectCount = stats.ObjectCount
+			bucket.StorageSize = stats.StorageSize
+		}
 	}
 
 	// 获取桶标签:GetBucketInfo 响应不含标签,需单独 GetBucketTagging,
@@ -132,13 +182,22 @@ func (a *OSSAdapter) GetBucket(ctx context.Context, bucketName string) (*types.O
 	return &bucket, nil
 }
 
-// GetBucketStats 获取存储桶统计信息
+// GetBucketStats 获取存储桶统计信息。
+//
+// 注意:它使用适配器的 defaultRegion 端点,只适用于「桶就在 defaultRegion」的场景。
+// 已知道桶所在地域时应走 getBucketStatsWithClient(用该地域的客户端),否则跨地域桶
+// 会 403。保留该方法是为了不破坏既有调用方/接口。
 func (a *OSSAdapter) GetBucketStats(ctx context.Context, bucketName string) (*types.OSSBucketStats, error) {
 	client, err := a.createClient("")
 	if err != nil {
 		return nil, fmt.Errorf("创建OSS客户端失败: %w", err)
 	}
 
+	return a.getBucketStatsWithClient(client, bucketName)
+}
+
+// getBucketStatsWithClient 用给定客户端读取桶统计信息(客户端的地域决定端点)。
+func (a *OSSAdapter) getBucketStatsWithClient(client *oss.Client, bucketName string) (*types.OSSBucketStats, error) {
 	result, err := client.GetBucketStat(bucketName)
 	if err != nil {
 		return nil, fmt.Errorf("获取OSS存储桶统计信息失败: %w", err)
