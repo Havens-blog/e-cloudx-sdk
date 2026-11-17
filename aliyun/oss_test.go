@@ -72,3 +72,54 @@ func TestOSSMapAliyunTags(t *testing.T) {
 		t.Fatalf("mapAliyunTags = %v, want {env:prod}", got)
 	}
 }
+
+// TestOSSStatsRegion 断言取桶统计信息时选择的地域端点。
+//
+// 回归背景(2026-11-17 线上):GetBucketStat 必须打到**桶自身地域**的端点,
+// 用其它地域端点返回 403 AccessDenied("must be addressed using the specified
+// endpoint")。原实现固定用适配器 defaultRegion,导致 982 个桶里 700 个容量/
+// 对象数恒为 0。
+func TestOSSStatsRegion(t *testing.T) {
+	cases := []struct {
+		name                     string
+		bucketRegion, listRegion string
+		defaultRegion            string
+		want                     string
+	}{
+		{"桶自身地域优先", "cn-shenzhen", "cn-hangzhou", "cn-beijing", "cn-shenzhen"},
+		{"桶地域缺失用本次列举地域", "", "cn-hangzhou", "cn-beijing", "cn-hangzhou"},
+		{"都缺失用 defaultRegion", "", "", "cn-beijing", "cn-beijing"},
+		{"跨地域桶不得回落到 defaultRegion", "cn-wulanchabu", "cn-hangzhou", "cn-hangzhou", "cn-wulanchabu"},
+		{"全空返回空(由 createClient 兜底)", "", "", "", ""},
+	}
+	for _, c := range cases {
+		t.Run(c.name, func(t *testing.T) {
+			if got := ossStatsRegion(c.bucketRegion, c.listRegion, c.defaultRegion); got != c.want {
+				t.Fatalf("ossStatsRegion(%q,%q,%q) = %q, want %q",
+					c.bucketRegion, c.listRegion, c.defaultRegion, got, c.want)
+			}
+		})
+	}
+}
+
+// TestOSSStatsRegionFromBucketLocation 端到端串起「列表响应 → 桶结构 → 统计端点」:
+// Location 为 oss-cn-wulanchabu 的桶,即使适配器 defaultRegion 是 cn-hangzhou,
+// 也必须用 cn-wulanchabu 去取统计。
+func TestOSSStatsRegionFromBucketLocation(t *testing.T) {
+	a := newOSSTestAdapter() // defaultRegion = cn-hangzhou
+	bucket := a.convertToOSSBucket(oss.BucketProperties{Name: "b", Location: "oss-cn-wulanchabu"})
+	if bucket.Region != "cn-wulanchabu" {
+		t.Fatalf("bucket.Region = %q, want cn-wulanchabu", bucket.Region)
+	}
+	got := ossStatsRegion(bucket.Region, "cn-hangzhou", a.defaultRegion)
+	if got != "cn-wulanchabu" {
+		t.Fatalf("统计端点地域 = %q, want cn-wulanchabu(否则 403 AccessDenied)", got)
+	}
+}
+
+// TestOSSEndpoint 断言端点拼接(统计客户端按地域构造端点)。
+func TestOSSEndpoint(t *testing.T) {
+	if got := ossEndpoint("cn-shenzhen"); got != "oss-cn-shenzhen.aliyuncs.com" {
+		t.Fatalf("ossEndpoint = %q", got)
+	}
+}
