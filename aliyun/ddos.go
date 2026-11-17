@@ -14,9 +14,22 @@ import (
 	"github.com/gotomicro/ego/core/elog"
 )
 
-// ddosPageSize DDoS 两条产品线列表接口的单页大小上限。
-// ddosbgp DescribeInstanceList 与 ddoscoo DescribeInstances 的 PageSize 上限均为 100。
-const ddosPageSize = 100
+// DDoS 两条产品线列表接口的单页大小上限**不同**，必须分开定义。
+//
+// 实证（2026-11-17 生产日志）：
+//
+//	ddoscoo DescribeInstances 返回
+//	InvalidPageSize: Invalid Page Size. pageSize must between 1 and 50.
+//
+// 原实现两条产品线共用 100，导致 ddoscoo 在**每个地域**都失败：
+// 同步侧每周期刷 20+ 条 ERROR，且 DDoS 高防实例始终同步不到。
+//
+//   - ddosbgp DescribeInstanceList：上限 100（原值可用）
+//   - ddoscoo DescribeInstances：上限 **50**
+const (
+	ddosBGPPagesSize = 100
+	ddosCooPageSize  = 50
+)
 
 // ddosTimeLayout DDoS 实例时间字段的格式化布局。
 // 与 waf.go convertResourceToInstance 的时间口径一致:毫秒时间戳经
@@ -152,7 +165,7 @@ func (a *DDOSAdapter) listDDoSBGPInstances(region string) ([]types.DDOSInstance,
 
 	var result []types.DDOSInstance
 	pageNo := 1
-	pageSize := ddosPageSize
+	pageSize := ddosBGPPagesSize
 
 	for {
 		request := bgp.CreateDescribeInstanceListRequest()
@@ -194,7 +207,7 @@ func (a *DDOSAdapter) listDDoSCooInstances(region string) ([]types.DDOSInstance,
 
 	var result []types.DDOSInstance
 	pageNo := 1
-	pageSize := ddosPageSize
+	pageSize := ddosCooPageSize
 
 	for {
 		request := coo.CreateDescribeInstancesRequest()
