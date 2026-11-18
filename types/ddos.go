@@ -6,6 +6,11 @@ package types
 //   - 阿里云: ddosbgp DescribeInstanceList / ddoscoo DescribeInstances
 //   - 华为云: aad/v1 ListInstance(带宽单位未在 SDK 中标注,留空不猜)
 //   - AWS:    shield ListProtections/DescribeSubscription
+//
+// 防护域名的来源实证:
+//   - 阿里云 ddoscoo: DescribeWebRules(七层网站业务转发规则)的 Domain 字段,
+//     按实例 ID 过滤后聚合;域名只挂在实例上,实例列表接口不返回。
+//   - 阿里云 ddosbgp / 腾讯云 / 华为云 / AWS: 现有列表接口无域名字段,暂不提供。
 type DDOSInstance struct {
 	// 基本信息
 	InstanceID   string `json:"instance_id"`   // 实例ID
@@ -15,15 +20,22 @@ type DDOSInstance struct {
 	Edition      string `json:"edition"`       // 产品形态(如 高防IP/高防包/DDoS原生防护/DDoS高防/Shield)
 
 	// 防护带宽(原始数值 + 单位;单位以 SDK 注释实证为准,未知时为 "" 不猜)
-	BasicBandwidth   int64  `json:"basic_bandwidth"`    // 保底防护带宽
-	ElasticBandwidth int64  `json:"elastic_bandwidth"`  // 弹性防护带宽
-	ServiceBandwidth int64  `json:"service_bandwidth"`  // 业务带宽
-	BandwidthUnit    string `json:"bandwidth_unit"`     // "Gbps" / "Mbps" / ""(厂商未标注单位)
-	CCQPS            int64  `json:"cc_qps"`             // CC防护峰值 QPS
+	BasicBandwidth   int64  `json:"basic_bandwidth"`   // 保底防护带宽
+	ElasticBandwidth int64  `json:"elastic_bandwidth"` // 弹性防护带宽
+	ServiceBandwidth int64  `json:"service_bandwidth"` // 业务带宽
+	BandwidthUnit    string `json:"bandwidth_unit"`    // "Gbps" / "Mbps" / ""(厂商未标注单位)
+	CCQPS            int64  `json:"cc_qps"`            // CC防护峰值 QPS
 
 	// 防护对象
 	ProtectedIPs     []string `json:"protected_ips"`      // 防护IP/关联IP列表
 	ProtectedIPCount int      `json:"protected_ip_count"` // 已防护IP数(厂商返回时)
+
+	// 防护域名 / 高防七层(网站业务)接入的域名
+	// 实证:阿里云 ddoscoo 经 DescribeWebRules 按实例 ID 分页拉取(七层转发规则),
+	// 该路径下无域名时写空切片而非 nil;ddosbgp/腾讯云/华为云/AWS 现有接口不返回域名,
+	// 保持零值(下游需同时容忍 nil 与空切片)。
+	ProtectedDomains     []string `json:"protected_domains"`      // 防护域名列表(解析不到时为空切片)
+	ProtectedDomainCount int      `json:"protected_domain_count"` // 已防护域名数(厂商返回时)
 
 	// 付费/周期
 	ChargeType   string `json:"charge_type"` // 计费方式(厂商原值)
