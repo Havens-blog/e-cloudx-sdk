@@ -163,6 +163,7 @@ type provider struct {
 func init() {
 	logquery.RegisterProvider(domain.CloudProviderTencent, logquery.LogTypeWAF, newProvider(logquery.LogTypeWAF))
 	logquery.RegisterProvider(domain.CloudProviderTencent, logquery.LogTypeCDN, newProvider(logquery.LogTypeCDN))
+	logquery.RegisterProvider(domain.CloudProviderTencent, logquery.LogTypeApp, newProvider(logquery.LogTypeApp))
 }
 
 func newProvider(logType logquery.LogType) logquery.ProviderCreator {
@@ -200,12 +201,15 @@ func (p *provider) enumRegions() []string {
 	return defaultEnumRegions
 }
 
-// ListLogSources 枚举日志源:CDN = EdgeOne topic, WAF = WAF topic(均动态
-// 识别;WAF 已知 stub 在 0 条时仍列出 enabled=false 引导云侧投递)。
+// ListLogSources 枚举日志源:CDN = EdgeOne topic, WAF = WAF topic, App =
+// 其余(other)topic(均动态识别;WAF 已知 stub 在 0 条时仍列出 enabled=false
+// 引导云侧投递;App 显式排除该 WAF stub)。
 func (p *provider) ListLogSources(ctx context.Context, account *domain.CloudAccount) ([]logquery.LogSource, error) {
 	switch p.logType {
 	case logquery.LogTypeWAF:
 		return p.wafSources(ctx)
+	case logquery.LogTypeApp:
+		return p.appSources(ctx)
 	default:
 		return p.sourcesByKind(ctx, "eo", "EdgeOne", "EdgeOne 访问日志(CLS 混装全部站点)")
 	}
@@ -288,8 +292,11 @@ func (p *provider) wafSources(ctx context.Context) ([]logquery.LogSource, error)
 
 // kindForLogType 日志类型 → topic 分类(kind)+ 映射器。
 func (p *provider) kindForLogType() (string, rawMapper) {
-	if p.logType == logquery.LogTypeWAF {
+	switch p.logType {
+	case logquery.LogTypeWAF:
 		return "waf", wafEntry
+	case logquery.LogTypeApp:
+		return "other", appEntry
 	}
 	return "eo", eoEntry
 }
@@ -372,6 +379,9 @@ func (p *provider) topicsByKind(ctx context.Context, kind string, resources []st
 	for _, region := range p.enumRegions() {
 		ids, _ := p.listTopicsCached(ctx, region)
 		for _, id := range ids {
+			if kind == "other" && id == appWAFStubTopicID {
+				continue // 应用日志目标集合排除已知 WAF stub(与 appSources 同口径)
+			}
 			if p.topicKind(ctx, region, id) != kind {
 				continue
 			}

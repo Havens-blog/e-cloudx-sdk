@@ -24,6 +24,8 @@ const defaultRegion = "cn-south-1"
 func init() {
 	logquery.RegisterProvider(domain.CloudProviderHuawei, logquery.LogTypeWAF, newProvider(logquery.LogTypeWAF))
 	logquery.RegisterProvider(domain.CloudProviderHuawei, logquery.LogTypeSLB, newProvider(logquery.LogTypeSLB))
+	// 应用业务日志:源清单不硬编码,按 LTS 全量组名动态发现(见 app.go)。
+	logquery.RegisterProvider(domain.CloudProviderHuawei, logquery.LogTypeApp, newProvider(logquery.LogTypeApp))
 }
 
 // hGroup catalog 条目:按组名枚举流,classify 按流名后缀映射。
@@ -114,6 +116,10 @@ func (p *provider) ListLogSources(ctx context.Context, account *domain.CloudAcco
 
 // listSourcesUncached 真实枚举(groupIDs 提前暴露凭证/网络问题,而非静默空清单)。
 func (p *provider) listSourcesUncached(ctx context.Context) ([]logquery.LogSource, error) {
+	if p.logType == logquery.LogTypeApp {
+		// 应用日志源 = catalog 之外的全部 LTS 组 × 全部流(动态发现)。
+		return p.listAppSources(ctx)
+	}
 	if _, err := p.groupIDs(ctx); err != nil {
 		return nil, err
 	}
@@ -166,6 +172,10 @@ func (p *provider) Search(ctx context.Context, account *domain.CloudAccount, par
 	limit := params.Limit
 	if limit <= 0 || limit > 3000 {
 		limit = 100
+	}
+	if p.logType == logquery.LogTypeApp {
+		// 应用日志:catalog 之外的组/流动态发现 + 别名映射(见 app.go)。
+		return p.searchApp(ctx, params, limit)
 	}
 	ids, err := p.groupIDs(ctx)
 	if err != nil {
@@ -258,6 +268,14 @@ func (p *provider) Search(ctx context.Context, account *domain.CloudAccount, par
 
 // fetchStreamLogs 单流查询:ListLogs 分页(每次 100,LineNum 滚动)。
 func (p *provider) fetchStreamLogs(ctx context.Context, groupID string, kind mapperKind, stream ltsmodel.ListLogStreamsResponseBody1LogStreams, params logquery.SearchParams, limit int) ([]logquery.LogEntry, error) {
+	return p.fetchStreamLogsMapped(ctx, groupID, stream, params, limit, func(meta logquery.LogMeta, content string) logquery.LogEntry {
+		return mapContent(kind, meta, content)
+	})
+}
+
+// fetchStreamLogsMapped 分页查询骨架:content -> 统一模型由 mapFn 决定
+// (WAF/ELB 走 mapContent,应用日志走 mapAppContent)。
+func (p *provider) fetchStreamLogsMapped(ctx context.Context, groupID string, stream ltsmodel.ListLogStreamsResponseBody1LogStreams, params logquery.SearchParams, limit int, mapFn func(logquery.LogMeta, string) logquery.LogEntry) ([]logquery.LogEntry, error) {
 	var entries []logquery.LogEntry
 	pageLimit := int32(100)
 	keywords := strings.TrimSpace(params.Query)
@@ -306,7 +324,7 @@ func (p *provider) fetchStreamLogs(ctx context.Context, groupID string, kind map
 				ResourceID:  stream.LogStreamName,
 				Source:      defaultRegion + "/" + stream.LogStreamName,
 			}
-			if e := mapContent(kind, meta, content); e != nil {
+			if e := mapFn(meta, content); e != nil {
 				// 字段筛选:映射后统一字段语义过滤(与阿里/火山一致)
 				if logquery.EntryMatches(e, params.Filters) {
 					entries = append(entries, e)
