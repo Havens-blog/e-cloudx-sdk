@@ -52,6 +52,19 @@ type LogProvider interface {
 	Search(ctx context.Context, account *domain.CloudAccount, params SearchParams) ([]LogEntry, error)
 }
 
+// ProviderResultCap 单次 Search 的 provider 级返回条数硬顶(各云 provider
+// 归并多源后按时间倒序截断到该值)。
+//
+// 为什么必须是导出的常量:provider 归并后的总量可远超单源上限,所以
+// 不能凭 len(entries) >= params.Limit 判断截断(见 federation 的注释);
+// 唯一可靠的信号是 provider 返回条数触达该硬顶——此时调用方必须把结果
+// 标记为可能不完整,不得把采样结果当成全量展示。
+//
+// 实测(2026-11-18,app 类型,3 天窗口,limit=2000):阿里云返回恰好 3000
+// 条、只覆盖 103 个源中的 32 个;联邦层因 len == cap 未超 federatedCap
+// 而把 truncated 置为 false,前端于是把被截断的结果显示成完整。
+const ProviderResultCap = 3000
+
 // LogExporter 可选导出能力:逐源分页流式拉取,不设 provider 级截断。
 // emit 每批回调映射后的条目;返回值 = 已导出总条数(跨源求和)。
 // 未实现该能力的 provider(如 S3 文件类)由调用方回退到 Search 采样。
