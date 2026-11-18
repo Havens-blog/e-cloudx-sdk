@@ -526,9 +526,9 @@ func (p *provider) Search(ctx context.Context, account *domain.CloudAccount, par
 	sort.SliceStable(entries, func(i, j int) bool {
 		return entries[i].GetTimestamp() > entries[j].GetTimestamp()
 	})
-	const providerCap = 3000
-	if len(entries) > providerCap {
-		entries = entries[:providerCap]
+	// provider 级硬顶见 logquery.ProviderResultCap(联邦层据此判定可能被截断)
+	if len(entries) > logquery.ProviderResultCap {
+		entries = entries[:logquery.ProviderResultCap]
 	}
 	return entries, nil
 }

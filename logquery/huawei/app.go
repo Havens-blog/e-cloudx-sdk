@@ -276,10 +276,9 @@ func (p *provider) searchApp(ctx context.Context, params logquery.SearchParams, 
 	sort.SliceStable(entries, func(i, j int) bool {
 		return entries[i].GetTimestamp() > entries[j].GetTimestamp()
 	})
-	// limit 为每日志流上限;归并后全局 3000 硬顶(与 WAF/ELB 的 providerCap 同值)
-	const appProviderCap = 3000
-	if len(entries) > appProviderCap {
-		entries = entries[:appProviderCap]
+	// limit 为每日志流上限;归并后全局 3000 硬顶(与 WAF/ELB 同用 logquery.ProviderResultCap)
+	if len(entries) > logquery.ProviderResultCap {
+		entries = entries[:logquery.ProviderResultCap]
 	}
 	return entries, nil
 }
