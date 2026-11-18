@@ -3,6 +3,7 @@ package aliyun
 import (
 	"context"
 	"fmt"
+	"sort"
 	"strconv"
 	"strings"
 	"time"
@@ -30,6 +31,16 @@ const (
 	ddosBGPPagesSize = 100
 	ddosCooPageSize  = 50
 )
+
+// ddosCooDomainPageSize 阿里云 DescribeWebRules(高防七层网站业务转发规则)的单页大小。
+// 阿里云 OpenAPI 文档 DescribeWebRules:PageSize 取值 1~10(与 DescribeInstances 的
+// 1~50 不是一回事,故单独定义,不复用 ddosCooPageSize)。
+const ddosCooDomainPageSize = 10
+
+// ddosCooDomainMaxPages DescribeWebRules 的翻页兜底上限。
+// 正常情况下按 TotalCount 与单页大小翻页即可结束;上限只用于防止厂商返回的
+// TotalCount 异常偏大(或实际条数少于 TotalCount 且每页都满页)导致死循环。
+const ddosCooDomainMaxPages = 200
 
 // ddosTimeLayout DDoS 实例时间字段的格式化布局。
 // 与 waf.go convertResourceToInstance 的时间口径一致:毫秒时间戳经
@@ -227,7 +238,28 @@ func (a *DDOSAdapter) listDDoSCooInstances(region string) ([]types.DDOSInstance,
 		}
 
 		for _, inst := range response.Instances {
-			result = append(result, convertDDoSCooInstanceToDDOS(inst, region))
+			converted := convertDDoSCooInstanceToDDOS(inst, region)
+
+			// 七层(网站业务)的防护域名只挂在实例上,DescribeInstances 不返回,
+			// 故逐实例补拉一次 DescribeWebRules。
+			// 失败即整体返回错误,不做静默降级:上游同步以本次返回集合为基准删除
+			// 未出现的行,且 protected_domains 属于资产属性,静默降级会让界面从
+			// 「有域名」变成「无域名」,无法区分「确实没有」与「没拉到」。
+			domains, total, err := a.listDDoSCooDomains(client, inst.InstanceId)
+			if err != nil {
+				return nil, fmt.Errorf("获取DDoS高防(ddoscoo)防护域名失败: %w", err)
+			}
+			converted.ProtectedDomains = domains
+			// 域名条数以厂商 TotalCount 与实际去重后条数的较大者为准:
+			// TotalCount 反映厂商侧规则数,去重后会小于它,取大避免把总数写小。
+			converted.ProtectedDomainCount = int(max(total, int64(len(domains))))
+
+			a.logger.Info("获取阿里云DDoS高防防护域名成功",
+				elog.String("instance_id", inst.InstanceId),
+				elog.Int("domains", len(domains)),
+				elog.Int64("total", total))
+
+			result = append(result, converted)
 		}
 
 		if len(response.Instances) < pageSize || int64(len(result)) >= response.TotalCount {
@@ -237,6 +269,81 @@ func (a *DDOSAdapter) listDDoSCooInstances(region string) ([]types.DDOSInstance,
 	}
 
 	return result, nil
+}
+
+// listDDoSCooDomains 分页拉取某个高防实例的防护域名(DescribeWebRules)。
+// 七层网站业务的域名只挂在实例上,故必须按 InstanceIds 过滤;
+// 循环直到累计数达到 TotalCount 或返回条数小于单页大小。
+// 返回去重排序后的域名与厂商返回的 TotalCount。
+func (a *DDOSAdapter) listDDoSCooDomains(client *coo.Client, instanceID string) ([]string, int64, error) {
+	var allRules []coo.WebRuleInDescribeWebRules
+	pageNo := 1
+	var total int64
+
+	for {
+		request := coo.CreateDescribeWebRulesRequest()
+		// InstanceIds 在生成的 SDK 中是 *[]string(Repeated),必须用切片地址赋值,
+		// 签名器才会拼出 InstanceIds.1=<id> 这类重复参数;传空串会把实例下的
+		// 域名查成空集合,故这里不做空值兜底,交由调用方保证 instanceID 非空。
+		request.InstanceIds = &[]string{instanceID}
+		// 分页字段实证:DescribeWebRules 的 PageNumber/PageSize 均为 requests.Integer
+		// (与 DescribeInstances 的普通 string 不同,故用 requests.NewInteger 赋值)。
+		request.PageNumber = requests.NewInteger(pageNo)
+		request.PageSize = requests.NewInteger(ddosCooDomainPageSize)
+
+		response, err := client.DescribeWebRules(request)
+		if err != nil {
+			return nil, 0, fmt.Errorf("调用DescribeWebRules失败: %w", err)
+		}
+
+		total = response.TotalCount
+		allRules = append(allRules, response.WebRules...)
+
+		if ddosDomainsPageDone(len(response.WebRules), ddosCooDomainPageSize, len(allRules), response.TotalCount) {
+			break
+		}
+
+		pageNo++
+		if pageNo > ddosCooDomainMaxPages {
+			return nil, total, fmt.Errorf("调用DescribeWebRules翻页超过上限(%d页): 已获取%d条, TotalCount=%d",
+				ddosCooDomainMaxPages, len(allRules), total)
+		}
+	}
+
+	return ddosDomainsFromWebRules(allRules), total, nil
+}
+
+// ddosDomainsPageDone 判断 DescribeWebRules 是否已翻完(纯函数,便于单测)。
+//
+//	pageGot 本页返回的规则条数
+//	pageSize 本页请求的条数
+//	fetched 累计已拉取的规则条数
+//	total 厂商返回的 TotalCount
+//
+// 本页不满一页、本页返回 0 条、或累计条数已达 TotalCount 时结束;
+// 最后一个条件用于 TotalCount 恰好等于累计数时不再多发一次空请求。
+func ddosDomainsPageDone(pageGot, pageSize, fetched int, total int64) bool {
+	return pageGot < pageSize || int64(fetched) >= total
+}
+
+// ddosDomainsFromWebRules 从 DescribeWebRules 的规则集合中提取域名列表(纯函数,便于单测)。
+// 去首尾空白、丢弃空串、按字典序升序 + 去重;返回切片恒非 nil。
+func ddosDomainsFromWebRules(rules []coo.WebRuleInDescribeWebRules) []string {
+	domains := make([]string, 0, len(rules))
+	seen := make(map[string]struct{}, len(rules))
+	for _, rule := range rules {
+		domain := strings.TrimSpace(rule.Domain)
+		if domain == "" {
+			continue
+		}
+		if _, ok := seen[domain]; ok {
+			continue
+		}
+		seen[domain] = struct{}{}
+		domains = append(domains, domain)
+	}
+	sort.Strings(domains)
+	return domains
 }
 
 // formatDDOSTime 将毫秒时间戳转换为时间字符串(纯函数,便于单测)。

@@ -153,6 +153,137 @@ func TestPickInstanceByID(t *testing.T) {
 	})
 }
 
+func TestDDOSDomainsFromWebRules(t *testing.T) {
+	tests := []struct {
+		name  string
+		rules []coo.WebRuleInDescribeWebRules
+		want  []string
+	}{
+		{
+			name:  "空输入返回空切片",
+			rules: nil,
+			want:  []string{},
+		},
+		{
+			name:  "单域名",
+			rules: []coo.WebRuleInDescribeWebRules{{Domain: "api.example.com"}},
+			want:  []string{"api.example.com"},
+		},
+		{
+			name: "重复域名去重",
+			rules: []coo.WebRuleInDescribeWebRules{
+				{Domain: "api.example.com"},
+				{Domain: "api.example.com"},
+				{Domain: "www.example.com"},
+			},
+			want: []string{"api.example.com", "www.example.com"},
+		},
+		{
+			name: "首尾空白裁剪",
+			rules: []coo.WebRuleInDescribeWebRules{
+				{Domain: "  www.example.com\t"},
+				{Domain: "\napi.example.com  "},
+			},
+			want: []string{"api.example.com", "www.example.com"},
+		},
+		{
+			name: "空串与纯空白丢弃",
+			rules: []coo.WebRuleInDescribeWebRules{
+				{Domain: ""},
+				{Domain: "   "},
+				{Domain: "\t\n"},
+				{Domain: "www.example.com"},
+			},
+			want: []string{"www.example.com"},
+		},
+		{
+			name: "多域名乱序输入按字典序升序",
+			rules: []coo.WebRuleInDescribeWebRules{
+				{Domain: "c.example.com"},
+				{Domain: "a.example.com"},
+				{Domain: "b.example.com"},
+			},
+			want: []string{"a.example.com", "b.example.com", "c.example.com"},
+		},
+		{
+			name: "裁剪后重复仍去重",
+			rules: []coo.WebRuleInDescribeWebRules{
+				{Domain: " www.example.com "},
+				{Domain: "www.example.com"},
+			},
+			want: []string{"www.example.com"},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got := ddosDomainsFromWebRules(tt.rules)
+			// 契约:返回切片恒非 nil(下游 JSON 需要 [] 而不是 null)
+			require.NotNil(t, got)
+			assert.Equal(t, tt.want, got)
+		})
+	}
+}
+
+func TestDDOSDomainsPageDone(t *testing.T) {
+	tests := []struct {
+		name     string
+		pageGot  int
+		pageSize int
+		fetched  int
+		total    int64
+		wantDone bool
+	}{
+		{
+			name:     "满页且未达总数继续翻页",
+			pageGot:  10,
+			pageSize: 10,
+			fetched:  10,
+			total:    25,
+			wantDone: false,
+		},
+		{
+			name:     "本页不满一页即末页",
+			pageGot:  3,
+			pageSize: 10,
+			fetched:  13,
+			total:    25,
+			wantDone: true,
+		},
+		{
+			name:     "累计条数达到 TotalCount 结束",
+			pageGot:  10,
+			pageSize: 10,
+			fetched:  20,
+			total:    20,
+			wantDone: true,
+		},
+		{
+			name:     "本页返回 0 条结束",
+			pageGot:  0,
+			pageSize: 10,
+			fetched:  10,
+			total:    25,
+			wantDone: true,
+		},
+		{
+			name:     "单页即覆盖总数",
+			pageGot:  2,
+			pageSize: 10,
+			fetched:  2,
+			total:    2,
+			wantDone: true,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got := ddosDomainsPageDone(tt.pageGot, tt.pageSize, tt.fetched, tt.total)
+			assert.Equal(t, tt.wantDone, got)
+		})
+	}
+}
+
 func TestFilterDDOSInstances(t *testing.T) {
 	instances := []types.DDOSInstance{
 		{InstanceID: "1", InstanceName: "生产-Web防护", Status: "Running"},
