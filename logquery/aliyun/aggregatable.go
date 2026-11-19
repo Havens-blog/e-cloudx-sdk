@@ -47,7 +47,7 @@ func (p *provider) AggregatableFields(ctx context.Context, _ *domain.CloudAccoun
 			continue
 		}
 		ls, _ := logstoreEnumCache.get(src.region+"/"+src.project, func() []string {
-			out, err := p.clientFor(src.region).ListLogStore(src.project)
+			out, err := listAllLogStores(p.clientFor(src.region), src.project)
 			if err != nil {
 				p.logger.Debug("[logquery-aliyun] list logstores failed",
 					elog.String("project", src.project), elog.FieldErr(err))

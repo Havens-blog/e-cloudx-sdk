@@ -199,7 +199,7 @@ func (p *provider) ListLogSources(ctx context.Context, account *domain.CloudAcco
 				// 动态枚举 logstore(logstore 清单分钟级稳定,同走缓存;
 				// 曾每次 sources 都 ListLogStore ×2 project,SLB sources 1.9s 主因)
 				stores, h := logstoreEnumCache.get(t.src.region+"/"+t.src.project, func() []string {
-					ls, err := p.clientFor(t.src.region).ListLogStore(t.src.project)
+					ls, err := listAllLogStores(p.clientFor(t.src.region), t.src.project)
 					if err != nil {
 						p.logger.Warn("[logquery-aliyun] list logstores failed",
 							elog.String("project", t.src.project), elog.FieldErr(err))
@@ -260,7 +260,7 @@ func (p *provider) k8sEventTargets() []slsSource {
 		})
 		for _, pr := range projects {
 			stores, _ := logstoreEnumCache.get(region+"/"+pr, func() []string {
-				ls, err := p.clientFor(region).ListLogStore(pr)
+				ls, err := listAllLogStores(p.clientFor(region), pr)
 				if err != nil {
 					p.logger.Warn("[logquery-aliyun] list k8s logstores failed",
 						elog.String("project", pr), elog.FieldErr(err))
@@ -502,7 +502,7 @@ func (p *provider) Search(ctx context.Context, account *domain.CloudAccount, par
 			if src.logstore == "" {
 				// logstore 清单走缓存(Search 每请求都来一遍,裸调用曾多耗 ~1s)
 				ls, _ := logstoreEnumCache.get(src.region+"/"+src.project, func() []string {
-					out, err := p.clientFor(src.region).ListLogStore(src.project)
+					out, err := listAllLogStores(p.clientFor(src.region), src.project)
 					if err != nil {
 						p.logger.Warn("[logquery-aliyun] list logstores failed",
 							elog.String("project", src.project), elog.FieldErr(err))
@@ -638,7 +638,7 @@ func (p *provider) Export(ctx context.Context, account *domain.CloudAccount, par
 			stores := []string{src.logstore}
 			if src.logstore == "" {
 				ls, _ := logstoreEnumCache.get(src.region+"/"+src.project, func() []string {
-					out, err := p.clientFor(src.region).ListLogStore(src.project)
+					out, err := listAllLogStores(p.clientFor(src.region), src.project)
 					if err != nil {
 						p.logger.Warn("[logquery-aliyun] export list logstores failed",
 							elog.String("project", src.project), elog.FieldErr(err))
@@ -745,7 +745,7 @@ func (p *provider) Aggregate(ctx context.Context, account *domain.CloudAccount, 
 			stores := []string{src.logstore}
 			if src.logstore == "" {
 				ls, _ := logstoreEnumCache.get(src.region+"/"+src.project, func() []string {
-					out, err := p.clientFor(src.region).ListLogStore(src.project)
+					out, err := listAllLogStores(p.clientFor(src.region), src.project)
 					if err != nil {
 						p.logger.Warn("[logquery-aliyun] aggregate list logstores failed",
 							elog.String("project", src.project), elog.FieldErr(err))
