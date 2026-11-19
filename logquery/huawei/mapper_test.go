@@ -63,7 +63,10 @@ func TestClassify(t *testing.T) {
 		// 组内流一律按 ELB 访问日志处理(2026-11-19 实测账号里 3 个 ELB 组)。
 		{"dev-elb", "dayu-access-gateway", kindELB, true},
 		{"eda-uat-elb", "eda-uat-waf-elb", kindELB, true},
-		{"hwyun-waf-logs", "hwyun-waf-logs-other", "", false},
+		// WAF 组内未命中 -attack 的流不丢弃,按访问日志处理(问题 #4):组已被
+		// isWAFELBGroup 从 app 源排除,这里再返回 false 会让该流在两个页签都消失。
+		{"hwyun-waf-logs", "hwyun-waf-logs-other", kindWAFAccess, true},
+		{"hw-waf", "custom-stream", kindWAFAccess, true},
 		{"eda-prod-elb", "something-else", kindELB, true},
 		// 非 WAF/ELB 组(应用日志组)不产出 WAF/ELB 条目。
 		{"app-order", "app-order-access", "", false},
@@ -96,6 +99,18 @@ func TestClassifyGroup(t *testing.T) {
 		{"waf-service-logs", "", false},
 		{"my-elb-service", "", false},
 		{"app-order", "", false},
+		// 裸后缀同形:仅以这几个字母结尾、前面不是分隔符,属于应用组命名巧合
+		// (OpenCodeReview PR#20 复审问题 #1)。误判的代价是该组被 appGroups
+		// 排除后在 WAF/ELB 与 app 两个页签都查不到。
+		{"prod-shelb", "", false},
+		{"biz-kolb", "", false},
+		{"team-drawf", "", false},
+		{"xxwaf", "", false},
+		// 整名与下划线锚定:组名就叫 waf/elb,或 hw_waf 这类下划线习惯。
+		{"waf", groupClassWAF, true},
+		{"elb", groupClassELB, true},
+		{"hw_waf", groupClassWAF, true},
+		{"prod_elb", groupClassELB, true},
 		{"k8s-log-08810f4a", "", false},
 		{"", "", false},
 	}

@@ -320,6 +320,13 @@ func TestAppGroups(t *testing.T) {
 			want: []string{"app-order"},
 		},
 		{
+			// 反向保护:裸后缀同形的应用组不得被当成 WAF/ELB 排除(问题 #1),
+			// 否则它们的日志会从应用日志页签消失。
+			name: "bare-suffix-lookalikes-are-app",
+			in:   []string{"prod-shelb", "biz-kolb", "team-drawf", "xxwaf", "app-order"},
+			want: []string{"app-order", "biz-kolb", "prod-shelb", "team-drawf", "xxwaf"},
+		},
+		{
 			// 仅含 waf/elb 子串但不符组名形态的应用组仍是应用日志源。
 			name: "substring-lookalikes-are-app",
 			in:   []string{"eda-prod-elb-app", "waf-service-logs", "my-elb-service"},
