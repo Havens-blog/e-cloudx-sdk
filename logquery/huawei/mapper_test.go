@@ -59,14 +59,50 @@ func TestClassify(t *testing.T) {
 		{"hwyun-waf-logs", "hwyun-waf-logs-attack", kindWAFAttack, true},
 		{"hwyun-waf-logs", "hwyun-waf-logs-access", kindWAFAccess, true},
 		{"eda-prod-elb", "eda-prod-gw-std-elb", kindELB, true},
+		// ELB 组内流名不统一:dev-elb 的流叫 dayu-access-gateway,组名已表明形态,
+		// 组内流一律按 ELB 访问日志处理(2026-11-19 实测账号里 3 个 ELB 组)。
+		{"dev-elb", "dayu-access-gateway", kindELB, true},
+		{"eda-uat-elb", "eda-uat-waf-elb", kindELB, true},
 		{"hwyun-waf-logs", "hwyun-waf-logs-other", "", false},
-		{"eda-prod-elb", "something-else", "", false},
+		{"eda-prod-elb", "something-else", kindELB, true},
+		// 非 WAF/ELB 组(应用日志组)不产出 WAF/ELB 条目。
+		{"app-order", "app-order-access", "", false},
 	}
 	for _, c := range cases {
 		got, ok := classify(c.group, c.stream)
 		if got != c.want || ok != c.ok {
 			t.Errorf("classify(%q, %q) = (%q, %v), want (%q, %v)",
 				c.group, c.stream, got, ok, c.want, c.ok)
+		}
+	}
+}
+
+// TestClassifyGroup 组名特征归类:WAF/ELB 组按命名识别,应用组不命中。
+func TestClassifyGroup(t *testing.T) {
+	cases := []struct {
+		group string
+		want  groupClass
+		ok    bool
+	}{
+		{"hwyun-waf-logs", groupClassWAF, true},
+		{"hwyun-waf-logs-2", groupClassWAF, true},
+		{"hw-waf", groupClassWAF, true},
+		{"eda-prod-elb", groupClassELB, true},
+		{"dev-elb", groupClassELB, true},
+		{"eda-uat-elb", groupClassELB, true},
+		{"eda-prod-elb-app", "", false},
+		{"  Dev-ELB  ", groupClassELB, true},
+		// 应用日志组:含 waf/elb 子串但不符合组名形态,必须留在 app 源。
+		{"waf-service-logs", "", false},
+		{"my-elb-service", "", false},
+		{"app-order", "", false},
+		{"k8s-log-08810f4a", "", false},
+		{"", "", false},
+	}
+	for _, c := range cases {
+		got, ok := classifyGroup(c.group)
+		if got != c.want || ok != c.ok {
+			t.Errorf("classifyGroup(%q) = (%q, %v), want (%q, %v)", c.group, got, ok, c.want, c.ok)
 		}
 	}
 }

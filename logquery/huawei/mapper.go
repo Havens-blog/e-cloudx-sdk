@@ -25,21 +25,58 @@ const (
 	kindELB       mapperKind = "elb"        // ELB 访问日志(content 空格分隔文本)
 )
 
-// classify 按 group/stream 名分类日志形态(流为动态枚举,按命名后缀判定;
-// 未识别组合返回 ok=false,不产出条目)。
+// groupClass 日志组的形态归类(WAF 组 / ELB 组)。
+type groupClass string
+
+const (
+	groupClassWAF groupClass = "waf"
+	groupClassELB groupClass = "elb"
+)
+
+// classifyGroup 按**组名特征**判定日志组形态:LTS 的组名由使用方自建,
+// 同一种日志可以有多个组(如 eda-prod-elb / dev-elb / eda-uat-elb 都是 ELB)。
+// 早先按精确组名白名单实现,只认到账号里的一个组,dev/uat 的 ELB 组因此既进不了
+// 负载均衡页签,又被当成应用日志用通用映射解析(字段全空) —— 见 2026-11-19 实测:
+// 账号内 12 个组,ELB 组 3 个,白名单只覆盖 1 个。
+//
+// 规则(命中即归类,组名为空返回 false):
+//   - 组名含 waf-logs 或以 waf 结尾 -> WAF 组(攻击/访问由流名后缀再分)
+//   - 组名以 elb 结尾 -> ELB 组
+func classifyGroup(name string) (groupClass, bool) {
+	lower := strings.ToLower(strings.TrimSpace(name))
+	if lower == "" {
+		return "", false
+	}
+	// WAF:组名含 waf-logs(如 hwyun-waf-logs / hwyun-waf-logs-2)或以 waf 结尾;
+	// 仅含 waf 子串的组(如应用自己叫 waf-service-logs)不算,避免误吞应用日志组。
+	if strings.Contains(lower, "waf-logs") || strings.HasSuffix(lower, "waf") {
+		return groupClassWAF, true
+	}
+	// ELB:组名以 elb 结尾(eda-prod-elb / dev-elb / eda-uat-elb)。刻意不匹配
+	// 中间的 -elb- 段,否则 my-elb-service 这类应用组会被误吞。
+	if strings.HasSuffix(lower, "elb") {
+		return groupClassELB, true
+	}
+	return "", false
+}
+
+// classify 按 group/stream 名分类日志形态(流为动态枚举;未识别组合返回
+// ok=false,不产出条目)。组级形态由 classifyGroup 判定,WAF 组再按流名后缀
+// 区分攻击/访问;ELB 组的流名不统一(eda-prod-*-elb、dayu-access-gateway),
+// 故组内流一律按 ELB 访问日志处理。
 func classify(group, stream string) (mapperKind, bool) {
-	switch group {
-	case "hwyun-waf-logs":
-		if strings.HasSuffix(stream, "-attack") {
-			return kindWAFAttack, true
-		}
-		if strings.HasSuffix(stream, "-access") {
-			return kindWAFAccess, true
-		}
-	case "eda-prod-elb":
-		if strings.HasSuffix(stream, "-elb") {
-			return kindELB, true
-		}
+	cls, ok := classifyGroup(group)
+	if !ok {
+		return "", false
+	}
+	if cls == groupClassELB {
+		return kindELB, true
+	}
+	if strings.HasSuffix(stream, "-attack") {
+		return kindWAFAttack, true
+	}
+	if strings.HasSuffix(stream, "-access") {
+		return kindWAFAccess, true
 	}
 	return "", false
 }
