@@ -147,6 +147,11 @@ type appStream struct {
 // listAppStreams 枚举 app 候选流:组清单来自 ListLogGroups 动态发现,
 // 单组 ListLogStreams 失败隔离(记 Warn、跳过该组,不整体失败)。
 func (p *provider) listAppStreams(ctx context.Context, ids map[string]string) []appStream {
+	return p.listAppStreamsWith(ctx, p.lts(), ids)
+}
+
+// listAppStreamsWith 同 listAppStreams,client 由调用方注入(聚合与单测复用)。
+func (p *provider) listAppStreamsWith(ctx context.Context, api ltsAPI, ids map[string]string) []appStream {
 	names := make([]string, 0, len(ids))
 	for name := range ids {
 		names = append(names, name)
@@ -156,7 +161,7 @@ func (p *provider) listAppStreams(ctx context.Context, ids map[string]string) []
 		group := g
 		var streams *ltsmodel.ListLogStreamsResponse
 		err := p.withLTSRetry(ctx, "list_streams/"+group, func() error {
-			resp, callErr := p.lts().ListLogStreams(&ltsmodel.ListLogStreamsRequest{
+			resp, callErr := api.ListLogStreams(&ltsmodel.ListLogStreamsRequest{
 				LogGroupName: &group,
 			})
 			if callErr != nil {

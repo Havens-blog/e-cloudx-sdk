@@ -106,6 +106,15 @@ func (p *provider) lts() *lts.LtsClient {
 	return p.ltsClient
 }
 
+// ltsAPI 聚合链路所需的最小 LTS 能力面(组清单 + 流清单 + 查询)。
+// 抽成接口只为单测能注入 fake 流清单;*lts.LtsClient 天然满足,
+// 生产路径一律由 p.lts() 构造,不引入第二套 client 生命周期。
+type ltsAPI interface {
+	ListLogGroups(req *ltsmodel.ListLogGroupsRequest) (*ltsmodel.ListLogGroupsResponse, error)
+	ListLogStreams(req *ltsmodel.ListLogStreamsRequest) (*ltsmodel.ListLogStreamsResponse, error)
+	ListLogs(req *ltsmodel.ListLogsRequest) (*ltsmodel.ListLogsResponse, error)
+}
+
 // Cloud 实现 LogProvider。
 func (p *provider) Cloud() domain.CloudProvider { return domain.CloudProviderHuawei }
 
@@ -114,7 +123,12 @@ func (p *provider) LogType() logquery.LogType { return p.logType }
 
 // LogSource 与 Search 均需 group name -> id 映射,ListLogGroups 一次解析。
 func (p *provider) groupIDs(ctx context.Context) (map[string]string, error) {
-	resp, err := p.lts().ListLogGroups(&ltsmodel.ListLogGroupsRequest{})
+	return p.groupIDsWith(ctx, p.lts())
+}
+
+// groupIDsWith 同 groupIDs,client 由调用方注入(生产传 p.lts(),单测传 fake)。
+func (p *provider) groupIDsWith(ctx context.Context, api ltsAPI) (map[string]string, error) {
+	resp, err := api.ListLogGroups(&ltsmodel.ListLogGroupsRequest{})
 	if err != nil {
 		return nil, fmt.Errorf("huawei logquery: list log groups: %w", err)
 	}
@@ -368,23 +382,38 @@ func (p *provider) fetchStreamLogsMapped(ctx context.Context, groupID string, st
 	return entries, nil
 }
 
+// wantStream 流是否命中 resources 过滤(空=全选)。
+// 与 ListLogSources 的 ResourceID 对齐:"组/流" 与裸流名都认。
+func wantStream(resources []string, group, stream string) bool {
+	if len(resources) == 0 {
+		return true
+	}
+	for _, r := range resources {
+		if r == stream || r == group+"/"+stream {
+			return true
+		}
+	}
+	return false
+}
+
 // Aggregate 窗口内真实聚合(plan.md §8):LTS is_analysis_query 管道 SQL
 // 下推(活体验证 24h/98.7 万条 1.2s),每流分桶(+TopN,仅 ELB host 维度),
 // Total = 分桶求和。单流失败隔离。方言差异见 aggregate.go 头注。
 func (p *provider) Aggregate(ctx context.Context, account *domain.CloudAccount, params logquery.AggregateParams) (*logquery.AggregateResult, error) {
+	return p.aggregateWith(ctx, p.lts(), params)
+}
+
+// aggregateWith Aggregate 的实现:api 由调用方注入(单测传 fake 流清单)。
+func (p *provider) aggregateWith(ctx context.Context, api ltsAPI, params logquery.AggregateParams) (*logquery.AggregateResult, error) {
 	if params.EndTime <= params.StartTime {
 		return nil, fmt.Errorf("huawei logquery aggregate: invalid time window")
 	}
 	if params.BucketSec <= 0 {
 		params.BucketSec = logquery.PickBucketSec(params.StartTime, params.EndTime)
 	}
-	ids, err := p.groupIDs(ctx)
+	ids, err := p.groupIDsWith(ctx, api)
 	if err != nil {
 		return nil, err
-	}
-	resources := make(map[string]bool, len(params.Resources))
-	for _, r := range params.Resources {
-		resources[r] = true
 	}
 
 	type streamTarget struct {
@@ -393,43 +422,53 @@ func (p *provider) Aggregate(ctx context.Context, account *domain.CloudAccount, 
 		stream ltsmodel.ListLogStreamsResponseBody1LogStreams
 	}
 	var targets []streamTarget
-	for _, src := range wafELBGroups(ids) {
-		if id := ids[src.group]; id == "" {
-			continue
-		}
-		streams, err := p.lts().ListLogStreams(&ltsmodel.ListLogStreamsRequest{
-			LogGroupName: &src.group,
-		})
-		if err != nil {
-			p.logger.Warn("[logquery-huawei] aggregate list streams failed",
-				elog.String("group", src.group), elog.FieldErr(err))
-			continue
-		}
-		for _, s := range derefStreams(streams.LogStreams) {
-			kind, ok := classify(src.group, s.LogStreamName)
-			if !ok {
+	if p.logType == logquery.LogTypeApp {
+		// 应用日志没有 WAF/ELB 那种固定组:候选流必须与 ListLogSources/Search
+		// 同源(appGroups 动态发现),否则 app 的 Aggregate 一个 target 都拿不到,
+		// 全窗聚合恒返回 0,前端趋势图只能退回采样。
+		for _, cand := range p.listAppStreamsWith(ctx, api, ids) {
+			if id := ids[cand.group]; id == "" {
 				continue
 			}
-			logType := logquery.LogTypeWAF
-			if kind == kindELB {
-				logType = logquery.LogTypeSLB
-			}
-			if logType != p.logType {
+			if !wantStream(params.Resources, cand.group, cand.stream.LogStreamName) {
 				continue
 			}
-			if len(resources) > 0 {
-				hit := false
-				for _, r := range params.Resources {
-					if r == s.LogStreamName || r == src.group+"/"+s.LogStreamName {
-						hit = true
-						break
-					}
-				}
-				if !hit {
+			targets = append(targets, streamTarget{
+				group:  hGroup{group: cand.group, name: cand.group},
+				kind:   kindApp,
+				stream: cand.stream,
+			})
+		}
+	} else {
+		for _, src := range wafELBGroups(ids) {
+			if id := ids[src.group]; id == "" {
+				continue
+			}
+			streams, err := api.ListLogStreams(&ltsmodel.ListLogStreamsRequest{
+				LogGroupName: &src.group,
+			})
+			if err != nil {
+				p.logger.Warn("[logquery-huawei] aggregate list streams failed",
+					elog.String("group", src.group), elog.FieldErr(err))
+				continue
+			}
+			for _, s := range derefStreams(streams.LogStreams) {
+				kind, ok := classify(src.group, s.LogStreamName)
+				if !ok {
 					continue
 				}
+				logType := logquery.LogTypeWAF
+				if kind == kindELB {
+					logType = logquery.LogTypeSLB
+				}
+				if logType != p.logType {
+					continue
+				}
+				if !wantStream(params.Resources, src.group, s.LogStreamName) {
+					continue
+				}
+				targets = append(targets, streamTarget{group: src, kind: kind, stream: s})
 			}
-			targets = append(targets, streamTarget{group: src, kind: kind, stream: s})
 		}
 	}
 
@@ -459,7 +498,7 @@ func (p *provider) Aggregate(ctx context.Context, account *domain.CloudAccount, 
 			}
 			sem <- struct{}{}
 			defer func() { <-sem }()
-			results[i] = p.aggregateStream(ids[tgt.group.group], tgt.kind, tgt.stream, params, filterParts[tgt.kind])
+			results[i] = p.aggregateStreamWith(api, ids[tgt.group.group], tgt.kind, tgt.stream, params, filterParts[tgt.kind])
 		}()
 	}
 	wg.Wait()
@@ -501,7 +540,7 @@ func (p *provider) Aggregate(ctx context.Context, account *domain.CloudAccount, 
 
 // aggregateStream 单流两条 SQL:分桶 + TopN(无维度的流跳过 TopN)。
 // analysisLogs 行为 map[string]any;t 已是毫秒(LTS __time 量纲)。
-func (p *provider) aggregateStream(groupID string, kind mapperKind, stream ltsmodel.ListLogStreamsResponseBody1LogStreams, params logquery.AggregateParams, filterPart string) *logquery.AggregateResult {
+func (p *provider) aggregateStreamWith(api ltsAPI, groupID string, kind mapperKind, stream ltsmodel.ListLogStreamsResponseBody1LogStreams, params logquery.AggregateParams, filterPart string) *logquery.AggregateResult {
 	result := &logquery.AggregateResult{}
 	runSQL := func(sql string, lines int32) ([]map[string]any, error) {
 		body := &ltsmodel.QueryLtsLogParams{
@@ -511,7 +550,7 @@ func (p *provider) aggregateStream(groupID string, kind mapperKind, stream ltsmo
 			IsAnalysisQuery: boolPtr(true),
 			Limit:           &lines,
 		}
-		resp, err := p.lts().ListLogs(&ltsmodel.ListLogsRequest{
+		resp, err := api.ListLogs(&ltsmodel.ListLogsRequest{
 			LogGroupId:  groupID,
 			LogStreamId: stream.LogStreamId,
 			Body:        body,

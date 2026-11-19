@@ -11,6 +11,8 @@ import (
 
 // filterWhere 编译字段筛选为 LTS 检索段前缀(仅 ELB host 支持下推)。
 // 返回 检索段(空=无下推),ok=false=字段不可下推(调用方跳过该源)。
+// 应用日志(app)只做 count 分桶,没有可检索的结构化列:有字段筛选即 ok=false,
+// 由聚合链路返回显式错误,而不是给出「没筛选的全窗数」这种静默错数。
 func filterWhere(kind mapperKind, filters []logquery.FieldFilter) (string, bool) {
 	if len(filters) == 0 {
 		return "", true
