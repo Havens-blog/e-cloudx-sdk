@@ -409,11 +409,17 @@ func (p *provider) aggregateWith(ctx context.Context, api ltsAPI, params logquer
 		stream ltsmodel.ListLogStreamsResponseBody1LogStreams
 	}
 	var targets []streamTarget
+	// enumErrs 收集"组流枚举"失败。枚举失败的组不会产生任何 target,
+	// 它的日志既进不了分桶也进不了单流 errs,Total 会静默偏小;
+	// 因此 app 路径必须把这些错误带出去(见下方汇总)。
+	var enumErrs []error
 	if p.logType == logquery.LogTypeApp {
 		// 应用日志没有 WAF/ELB 那种固定组:候选流必须与 ListLogSources/Search
 		// 同源(appGroups 动态发现),否则 app 的 Aggregate 一个 target 都拿不到,
 		// 全窗聚合恒返回 0,前端趋势图只能退回采样。
-		for _, cand := range p.listAppStreamsWith(ctx, api, ids) {
+		appStreams, appEnumErrs := p.listAppStreamsChecked(ctx, api, ids)
+		enumErrs = append(enumErrs, appEnumErrs...)
+		for _, cand := range appStreams {
 			if id := ids[cand.group]; id == "" {
 				continue
 			}
@@ -535,14 +541,17 @@ func (p *provider) aggregateWith(ctx context.Context, api ltsAPI, params logquer
 	// 返回已合并的部分结果 + 显式错误(cam 侧把错误写进 AggregateSourceOutcome.Error,
 	// 部分分桶仍参与归并) —— 用户既能拿到图,也能看到该源有失败。
 	if p.logType == logquery.LogTypeApp {
-		if joined := errors.Join(errs...); joined != nil {
-			failed := 0
+		joined := errors.Join(append(append([]error{}, enumErrs...), errs...)...)
+		if joined != nil {
+			failedStreams := 0
 			for _, e := range errs {
 				if e != nil {
-					failed++
+					failedStreams++
 				}
 			}
-			return merged, fmt.Errorf("应用日志聚合失败 %d/%d 个流(总数可能偏小): %w", failed, len(targets), joined)
+			// 组枚举失败与单流失败分开计数:前者影响整组(可能几十条流),不能只报成 1 条。
+			return merged, fmt.Errorf("应用日志聚合失败 %d 个组枚举失败、%d/%d 个流聚合失败(总数可能偏小): %w",
+				len(enumErrs), failedStreams, len(targets), joined)
 		}
 	}
 	return merged, nil
@@ -585,12 +594,11 @@ func (p *provider) aggregateStreamWith(ctx context.Context, api ltsAPI, groupID 
 		if err != nil {
 			return nil, fmt.Errorf("lts aggregate sql %s: %w", stream.LogStreamName, err)
 		}
-		resp := &ltsmodel.ListLogsResponse{AnalysisLogs: analysis}
-		if resp.AnalysisLogs == nil {
+		if analysis == nil {
 			return nil, nil
 		}
-		rows := make([]map[string]any, 0, len(*resp.AnalysisLogs))
-		for _, raw := range *resp.AnalysisLogs {
+		rows := make([]map[string]any, 0, len(*analysis))
+		for _, raw := range *analysis {
 			if m, ok := raw.(map[string]any); ok {
 				rows = append(rows, m)
 			}

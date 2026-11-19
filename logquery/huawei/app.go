@@ -151,12 +151,25 @@ func (p *provider) listAppStreams(ctx context.Context, ids map[string]string) []
 }
 
 // listAppStreamsWith 同 listAppStreams,client 由调用方注入(聚合与单测复用)。
+// 组枚举失败只记 Warn 并跳过:Search/ListLogSources 是尽力而为的清单,
+// 单组不可用不应让整个清单失败(与 WAF/ELB 的枚举一致)。
 func (p *provider) listAppStreamsWith(ctx context.Context, api ltsAPI, ids map[string]string) []appStream {
+	out, _ := p.listAppStreamsChecked(ctx, api, ids)
+	return out
+}
+
+// listAppStreamsChecked 同 listAppStreamsWith,但同时返回每个失败组的错误。
+// 聚合路径必须用这个变体:枚举失败的组不会产生 target,该组日志既进不了分桶、
+// 也进不了单流错误列表,Total 会静默偏小(必须把错误交给调用方显式上报)。
+func (p *provider) listAppStreamsChecked(ctx context.Context, api ltsAPI, ids map[string]string) ([]appStream, []error) {
 	names := make([]string, 0, len(ids))
 	for name := range ids {
 		names = append(names, name)
 	}
-	var out []appStream
+	var (
+		out  []appStream
+		errs []error
+	)
 	for _, g := range appGroups(names) {
 		group := g
 		var streams *ltsmodel.ListLogStreamsResponse
@@ -173,13 +186,14 @@ func (p *provider) listAppStreamsWith(ctx context.Context, api ltsAPI, ids map[s
 		if err != nil {
 			p.logger.Warn("[logquery-huawei] list streams failed",
 				elog.String("group", group), elog.FieldErr(err))
+			errs = append(errs, fmt.Errorf("list streams %s: %w", group, err))
 			continue
 		}
 		for _, s := range derefStreams(streams.LogStreams) {
 			out = append(out, appStream{group: group, stream: s})
 		}
 	}
-	return out
+	return out, errs
 }
 
 // listAppSources 应用日志源枚举:Catalog 之外的组 × 全部流,每个 (组,流)

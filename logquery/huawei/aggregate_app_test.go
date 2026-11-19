@@ -28,6 +28,8 @@ type fakeLTS struct {
 
 	// failStreams 模拟某些流的 SQL 一直失败(限流/权限),用于验证失败可见性
 	failStreams map[string]bool
+	// failGroups 模拟组级 ListLogStreams 一直失败(限流耗尽/权限),用于验证枚举失败可见性
+	failGroups map[string]bool
 }
 
 func (f *fakeLTS) ListLogGroups(*ltsmodel.ListLogGroupsRequest) (*ltsmodel.ListLogGroupsResponse, error) {
@@ -46,6 +48,9 @@ func (f *fakeLTS) ListLogGroups(*ltsmodel.ListLogGroupsRequest) (*ltsmodel.ListL
 func (f *fakeLTS) ListLogStreams(req *ltsmodel.ListLogStreamsRequest) (*ltsmodel.ListLogStreamsResponse, error) {
 	if req.LogGroupName == nil {
 		return nil, fmt.Errorf("fake lts: missing log group name")
+	}
+	if f.failGroups[*req.LogGroupName] {
+		return nil, fmt.Errorf("fake lts: list streams throttled (APIGW.0308) for %s", *req.LogGroupName)
 	}
 	out := make([]ltsmodel.ListLogStreamsResponseBody1LogStreams, 0, len(f.streams[*req.LogGroupName]))
 	for _, name := range f.streams[*req.LogGroupName] {
@@ -326,5 +331,29 @@ func TestAppAggregateGoesThroughLTSGate(t *testing.T) {
 	}
 	if strings.Contains(src, "aggregateStreamWith(api,") {
 		t.Fatal("aggregateStreamWith 调用缺少 ctx:无法走闸门/取消")
+	}
+}
+
+// 枚举失败的组不会产生 target:若不把该错误带出去,聚合会以 nil error 返回偏小的
+// Total(该组日志既不在分桶、也不在单流错误里)。两种失败必须同时可见。
+func TestAggregateAppSurfacesEnumerationFailure(t *testing.T) {
+	hp := newAggProvider(t, logquery.LogTypeApp)
+	fake := &fakeLTS{
+		groups:     map[string]string{"app-order": "g1", "app-payment": "g2", "dev-elb": "g3"},
+		streams:    map[string][]string{"app-order": {"app-order-access"}},
+		counts:     map[string]int64{"app-order-access": 100},
+		failGroups: map[string]bool{"app-payment": true},
+	}
+	fake.failGroups = map[string]bool{"app-payment": true}
+
+	res, err := hp.aggregateWith(context.Background(), fake, aggParams())
+	if err == nil {
+		t.Fatal("组枚举失败必须让聚合返回错误,否则 Total 静默偏小")
+	}
+	if !strings.Contains(err.Error(), "个组枚举失败") {
+		t.Fatalf("错误文案应区分组枚举失败, got %v", err)
+	}
+	if res == nil || res.Total == 0 {
+		t.Fatalf("成功组的结果仍必须返回, got %+v", res)
 	}
 }
