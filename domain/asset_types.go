@@ -48,11 +48,13 @@ var DefaultCMDBSyncAssetTypes = []string{
 
 // AttachmentAssetTypes 附属/衍生资源类型:依附于主体资源存在,没有独立
 // 业务实例语义——eni/vswitch/security_group 挂载于 ECS/VPC,disk 是
-// ECS 的块设备配置,snapshot/image 是磁盘/系统的衍生物。
+// ECS 的块设备配置,snapshot/image 是磁盘/系统的衍生物,ddos_domain 是
+// 高防实例背后的防护域名(一个实例往往挂上百个域名,单独计入"资产总数"
+// 会让 DDoS 从 1 个实例膨胀成上百个,故按附属资源处理)。
 // 仪表盘「资产总数」「类型分布」等统计口径统一排除这些类型
 // (同步仍全量采集,仅统计排除)。
 var AttachmentAssetTypes = []string{
-	"eni", "vswitch", "security_group", "disk", "snapshot", "image",
+	"eni", "vswitch", "security_group", "disk", "snapshot", "image", "ddos_domain",
 }
 
 // IsAttachmentAssetType 判断(去厂商前缀后的)资产类型是否为附属资源。
