@@ -1,4 +1,4 @@
-// app.go 华为云 LTS 应用业务日志(LogTypeApp)。
+﻿// app.go 华为云 LTS 应用业务日志(LogTypeApp)。
 //
 // 与 WAF/ELB 不同,应用日志在 LTS 侧没有固定组名:日志组/流由账号自行创建
 // (ECS/CCE 采集器或 SDK 直写),字段形态也没有统一 schema。因此:
@@ -102,15 +102,13 @@ func (p *provider) withLTSRetry(ctx context.Context, call string, fn func() erro
 	return err
 }
 
-// isCatalogGroup 是否为 WAF/ELB 硬编码 catalog 组。catalog 组只属于 WAF/ELB,
-// 不得出现在 app 源里。
-func isCatalogGroup(name string) bool {
-	for _, src := range catalog {
-		if src.group == name {
-			return true
-		}
-	}
-	return false
+// isWAFELBGroup 是否为 WAF/ELB 形态的日志组(按 classifyGroup 的命名规则
+// 判定,不再依赖精确组名白名单)。这类组只属于 WAF/负载均衡页签,不得出现在
+// app 源里 —— 早先按 catalog 精确匹配,dev-elb / eda-uat-elb 因此被当成应用
+// 日志源(用通用映射解析 ELB 文本行,字段全空)。
+func isWAFELBGroup(name string) bool {
+	_, ok := classifyGroup(name)
+	return ok
 }
 
 // platformGroups LTS 自身运维日志组(实测账号里是 lts-system/…-statistics)。
@@ -130,7 +128,7 @@ func appGroups(allGroups []string) []string {
 	seen := make(map[string]bool, len(allGroups))
 	out := make([]string, 0, len(allGroups))
 	for _, g := range allGroups {
-		if g == "" || seen[g] || isCatalogGroup(g) || isPlatformGroup(g) {
+		if g == "" || seen[g] || isWAFELBGroup(g) || isPlatformGroup(g) {
 			continue
 		}
 		seen[g] = true

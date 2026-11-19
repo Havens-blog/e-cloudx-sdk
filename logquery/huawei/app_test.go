@@ -1,4 +1,4 @@
-package huawei
+﻿package huawei
 
 import (
 	"context"
@@ -313,9 +313,17 @@ func TestAppGroups(t *testing.T) {
 			want: []string{"app-a", "app-b"},
 		},
 		{
-			name: "catalog-prefix-lookalikes-are-app",
-			in:   []string{"hwyun-waf-logs-2", "eda-prod-elb-app"},
-			want: []string{"eda-prod-elb-app", "hwyun-waf-logs-2"},
+			// 组名符合 WAF/ELB 形态的同族组(多环境、带序号)同样归 WAF/ELB 页签,
+			// 不能当应用日志 —— 2026-11-19 实测 dev-elb/eda-uat-elb 因此丢失。
+			name: "same-shape-groups-are-not-app",
+			in:   []string{"hwyun-waf-logs-2", "dev-elb", "eda-uat-elb", "app-order"},
+			want: []string{"app-order"},
+		},
+		{
+			// 仅含 waf/elb 子串但不符组名形态的应用组仍是应用日志源。
+			name: "substring-lookalikes-are-app",
+			in:   []string{"eda-prod-elb-app", "waf-service-logs", "my-elb-service"},
+			want: []string{"eda-prod-elb-app", "my-elb-service", "waf-service-logs"},
 		},
 		{
 			name: "sort-by-name",

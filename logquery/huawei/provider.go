@@ -35,10 +35,35 @@ type hGroup struct {
 	note   string
 }
 
-// catalog 华为侧 LTS 日志组清单(Phase 0 实测;组名账号内稳定)。
+// catalog 已知 WAF/ELB 组的展示名与备注(Phase 0 实测)。
+// **不是枚举白名单**:要枚举哪些组由 wafELBGroups 按 classifyGroup 的命名规则
+// 动态判定,这里只提供已知组的友好展示名;账号里新增的同形态组(dev-elb、
+// eda-uat-elb 等)无需改代码即可被发现。
 var catalog = []hGroup{
 	{group: "hwyun-waf-logs", name: "WAF", note: "WAF 攻击+访问日志(实时)"},
 	{group: "eda-prod-elb", name: "ELB", note: "ELB 访问日志(实时)"},
+}
+
+// wafELBGroups 从账号内全部 LTS 组名挑出 WAF/ELB 组(按命名规则动态判定),
+// 供源枚举/Search/Aggregate 共用。catalog 命中的组沿用其展示名与备注,
+// 其余组直接用组名。结果按组名排序,保证源清单稳定。
+func wafELBGroups(ids map[string]string) []hGroup {
+	out := make([]hGroup, 0, len(ids))
+	for name := range ids {
+		if _, ok := classifyGroup(name); !ok {
+			continue
+		}
+		pick := hGroup{group: name, name: name}
+		for _, c := range catalog {
+			if c.group == name {
+				pick = c
+				break
+			}
+		}
+		out = append(out, pick)
+	}
+	sort.Slice(out, func(i, j int) bool { return out[i].group < out[j].group })
+	return out
 }
 
 // provider 华为云 LTS 日志 provider(单账号)。
@@ -120,11 +145,12 @@ func (p *provider) listSourcesUncached(ctx context.Context) ([]logquery.LogSourc
 		// 应用日志源 = catalog 之外的全部 LTS 组 × 全部流(动态发现)。
 		return p.listAppSources(ctx)
 	}
-	if _, err := p.groupIDs(ctx); err != nil {
+	ids, err := p.groupIDs(ctx)
+	if err != nil {
 		return nil, err
 	}
 	var out []logquery.LogSource
-	for _, src := range catalog {
+	for _, src := range wafELBGroups(ids) {
 		streams, err := p.lts().ListLogStreams(&ltsmodel.ListLogStreamsRequest{
 			LogGroupName: &src.group,
 		})
@@ -188,7 +214,7 @@ func (p *provider) Search(ctx context.Context, account *domain.CloudAccount, par
 		stream ltsmodel.ListLogStreamsResponseBody1LogStreams
 	}
 	var targets []streamTarget
-	for _, src := range catalog {
+	for _, src := range wafELBGroups(ids) {
 		if id := ids[src.group]; id == "" {
 			continue // 组不存在(账号无此日志组),静默跳过
 		}
@@ -367,7 +393,7 @@ func (p *provider) Aggregate(ctx context.Context, account *domain.CloudAccount, 
 		stream ltsmodel.ListLogStreamsResponseBody1LogStreams
 	}
 	var targets []streamTarget
-	for _, src := range catalog {
+	for _, src := range wafELBGroups(ids) {
 		if id := ids[src.group]; id == "" {
 			continue
 		}
