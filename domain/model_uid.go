@@ -40,7 +40,7 @@ type modelUIDEntry struct {
 	pat   ModelUIDPattern
 }
 
-// modelUIDEntries 注册表（19 类资源）。
+// modelUIDEntries 注册表（20 类资源，其中 ddos_domain 是附属资源）。
 var modelUIDEntries = []modelUIDEntry{
 	{"ecs", ModelUIDPattern{Generics: []string{"cloud_vm"}, Suffixes: []string{"ecs"}, BareNames: []string{"ecs"}}},
 	{"disk", ModelUIDPattern{Generics: []string{"cloud_disk"}, Suffixes: []string{"disk"}, BareNames: []string{"disk"}}},
@@ -57,6 +57,11 @@ var modelUIDEntries = []modelUIDEntry{
 	{"cdn", ModelUIDPattern{Generics: []string{"cloud_cdn"}, Suffixes: []string{"cdn"}, BareNames: []string{"cdn"}}},
 	{"waf", ModelUIDPattern{Generics: []string{"cloud_waf"}, Suffixes: []string{"waf"}, BareNames: []string{"waf"}}},
 	{"ddos", ModelUIDPattern{Generics: []string{"cloud_ddos"}, Suffixes: []string{"ddos"}, BareNames: []string{"ddos"}}},
+	// ddos_domain 是高防实例的**附属资源**(防护域名),不是独立业务实例:
+	// 注册它只为让 buildQuery/buildSearchQuery 能用同一套模式匹配域名对象,
+	// 统计口径已由 AttachmentAssetTypes 排除。后缀 ddos_domain 与 ddos 不冲突
+	// ("_ddos" 不是 "_ddos_domain" 的结尾),但语义上必须排在 ddos 之后。
+	{"ddos_domain", ModelUIDPattern{Generics: []string{"cloud_ddos_domain"}, Suffixes: []string{"ddos_domain"}, BareNames: []string{"ddos_domain"}}},
 	{"image", ModelUIDPattern{Generics: []string{"cloud_image"}, Suffixes: []string{"image"}, BareNames: []string{"image"}}},
 	{"nas", ModelUIDPattern{Generics: []string{"cloud_nas"}, Suffixes: []string{"nas"}, BareNames: []string{"nas"}}},
 	{"oss", ModelUIDPattern{Generics: []string{"cloud_oss"}, Suffixes: []string{"oss"}, BareNames: []string{"oss"}}},

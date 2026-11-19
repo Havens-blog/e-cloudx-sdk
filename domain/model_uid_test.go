@@ -8,7 +8,7 @@ import (
 // allShorts 注册表应覆盖的全部资源类型短名。
 var allShorts = []string{
 	"ecs", "disk", "snapshot", "security_group", "rds", "redis", "mongodb",
-	"vpc", "eip", "eni", "vswitch", "lb", "cdn", "waf", "ddos", "image",
+	"vpc", "eip", "eni", "vswitch", "lb", "cdn", "waf", "ddos", "ddos_domain", "image",
 	"nas", "oss", "kafka", "elasticsearch",
 }
 
@@ -45,6 +45,7 @@ func TestModelUIDPatternFor_Aliases(t *testing.T) {
 		{"cloud_cdn", []string{"cloud_cdn"}, []string{"cdn"}},
 		{"waf", []string{"cloud_waf"}, []string{"waf"}},
 		{"ddos", []string{"cloud_ddos"}, []string{"ddos"}},
+		{"ddos_domain", []string{"cloud_ddos_domain"}, []string{"ddos_domain"}},
 		{"eni", []string{"cloud_eni"}, []string{"eni"}},
 		{"image", []string{"cloud_image"}, []string{"image"}},
 	}
@@ -89,6 +90,8 @@ func TestExtractAssetType(t *testing.T) {
 		{"huawei_mongodb", "mongodb"},
 		{"aws_rds", "rds"},
 		{"aliyun_ddos", "ddos"},
+		{"aliyun_ddos_domain", "ddos_domain"},
+		{"cloud_ddos_domain", "ddos_domain"},
 		{"cloud_ddos", "ddos"},
 		// lb 家族返回字面后缀（与旧 web 版一致：aliyun_slb→"slb"，仅通用名归并 lb）
 		{"aliyun_slb", "slb"},
