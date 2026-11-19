@@ -139,6 +139,28 @@ func (p *provider) ListLogSources(ctx context.Context, account *domain.CloudAcco
 	return sources, err
 }
 
+// listGroupStreams 枚举单个日志组的流清单,走 LTS 限流闸门与退避重试。
+// WAF/ELB 组由账号实际命名动态发现(不再固定 2 个),组数变多后并发裸调
+// 会撞 LTS ~10 QPS 限流(APIGW.0308);被限流时这里只 Warn 跳过整组,
+// 组内流会静默从源清单/查询/聚合三处消失,与 app 路径共用同一闸门即可避免。
+func (p *provider) listGroupStreams(ctx context.Context, group string) (*ltsmodel.ListLogStreamsResponse, error) {
+	var streams *ltsmodel.ListLogStreamsResponse
+	err := p.withLTSRetry(ctx, "list_streams/"+group, func() error {
+		resp, callErr := p.lts().ListLogStreams(&ltsmodel.ListLogStreamsRequest{
+			LogGroupName: &group,
+		})
+		if callErr != nil {
+			return callErr
+		}
+		streams = resp
+		return nil
+	})
+	if err != nil {
+		return nil, err
+	}
+	return streams, nil
+}
+
 // listSourcesUncached 真实枚举(groupIDs 提前暴露凭证/网络问题,而非静默空清单)。
 func (p *provider) listSourcesUncached(ctx context.Context) ([]logquery.LogSource, error) {
 	if p.logType == logquery.LogTypeApp {
@@ -151,9 +173,7 @@ func (p *provider) listSourcesUncached(ctx context.Context) ([]logquery.LogSourc
 	}
 	var out []logquery.LogSource
 	for _, src := range wafELBGroups(ids) {
-		streams, err := p.lts().ListLogStreams(&ltsmodel.ListLogStreamsRequest{
-			LogGroupName: &src.group,
-		})
+		streams, err := p.listGroupStreams(ctx, src.group)
 		if err != nil {
 			// 单组失败隔离:记日志,不阻塞其他组
 			p.logger.Warn("[logquery-huawei] list streams failed",
@@ -218,9 +238,7 @@ func (p *provider) Search(ctx context.Context, account *domain.CloudAccount, par
 		if id := ids[src.group]; id == "" {
 			continue // 组不存在(账号无此日志组),静默跳过
 		}
-		streams, err := p.lts().ListLogStreams(&ltsmodel.ListLogStreamsRequest{
-			LogGroupName: &src.group,
-		})
+		streams, err := p.listGroupStreams(ctx, src.group)
 		if err != nil {
 			p.logger.Warn("[logquery-huawei] list streams failed",
 				elog.String("group", src.group), elog.FieldErr(err))
@@ -397,9 +415,7 @@ func (p *provider) Aggregate(ctx context.Context, account *domain.CloudAccount, 
 		if id := ids[src.group]; id == "" {
 			continue
 		}
-		streams, err := p.lts().ListLogStreams(&ltsmodel.ListLogStreamsRequest{
-			LogGroupName: &src.group,
-		})
+		streams, err := p.listGroupStreams(ctx, src.group)
 		if err != nil {
 			p.logger.Warn("[logquery-huawei] aggregate list streams failed",
 				elog.String("group", src.group), elog.FieldErr(err))
