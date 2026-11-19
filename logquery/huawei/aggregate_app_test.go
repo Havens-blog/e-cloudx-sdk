@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"os"
 	"sort"
 	"strings"
 	"sync"
@@ -24,6 +25,9 @@ type fakeLTS struct {
 
 	mu      sync.Mutex
 	queried []string // 真正跑了 SQL 的流名(断言选流口径)
+
+	// failStreams 模拟某些流的 SQL 一直失败(限流/权限),用于验证失败可见性
+	failStreams map[string]bool
 }
 
 func (f *fakeLTS) ListLogGroups(*ltsmodel.ListLogGroupsRequest) (*ltsmodel.ListLogGroupsResponse, error) {
@@ -59,6 +63,9 @@ func (f *fakeLTS) ListLogs(req *ltsmodel.ListLogsRequest) (*ltsmodel.ListLogsRes
 	}
 	sql := *req.Body.Query
 	stream := req.LogStreamId
+	if f.failStreams[stream] {
+		return nil, fmt.Errorf("fake lts: throttled (APIGW.0308) for %s", stream)
+	}
 	rows := make([]interface{}, 0, 2)
 	switch {
 	case strings.Contains(sql, "group by t"):
@@ -256,23 +263,68 @@ func TestAggregateAppDimensionSkipsTopN(t *testing.T) {
 	}
 }
 
-func TestWantStream(t *testing.T) {
-	cases := []struct {
-		name      string
-		resources []string
-		group     string
-		stream    string
-		want      bool
-	}{
-		{"空表示全选", nil, "app-order", "app-order-access", true},
-		{"组/流", []string{"app-order/app-order-access"}, "app-order", "app-order-access", true},
-		{"裸流名", []string{"app-order-access"}, "app-order", "app-order-access", true},
-		{"未命中", []string{"other/x"}, "app-order", "app-order-access", false},
-		{"前缀相同但不同流", []string{"app-order/app-order"}, "app-order", "app-order-access", false},
+// 应用日志是多流扇出:单流失败不能让 Total 静默偏小,必须把错误带回给调用方
+// (cam 侧会写进 AggregateSourceOutcome.Error),同时保留已成功的分桶。
+func TestAggregateAppSurfacesStreamFailure(t *testing.T) {
+	fake := &fakeLTS{
+		groups: map[string]string{
+			"app-order":   "g-app-order",
+			"app-payment": "g-app-payment",
+		},
+		streams: map[string][]string{
+			"app-order":   {"app-order-access"},
+			"app-payment": {"app-payment-business"},
+		},
+		counts:      map[string]int64{"app-order-access": 100, "app-payment-business": 50},
+		failStreams: map[string]bool{"app-payment-business": true},
 	}
-	for _, c := range cases {
-		if got := wantStream(c.resources, c.group, c.stream); got != c.want {
-			t.Fatalf("%s: wantStream = %v, want %v", c.name, got, c.want)
-		}
+	p := newAggProvider(t, logquery.LogTypeApp)
+	res, err := p.aggregateWith(context.Background(), fake, aggParams())
+	if err == nil {
+		t.Fatal("存在失败流时必须返回错误(否则 Total 静默偏小)")
+	}
+	if !strings.Contains(err.Error(), "个流") {
+		t.Fatalf("错误文案应说明失败流数量, got %v", err)
+	}
+	if res == nil {
+		t.Fatal("应返回已合并的部分结果,便于前端仍能画图")
+	}
+	if res.Total != 100 {
+		t.Fatalf("部分结果只应包含成功的流, got total=%d want 100", res.Total)
+	}
+}
+
+// WAF/ELB 路径维持既有行为:单流 SQL 失败只告警、该流不计,整体不报错。
+func TestAggregateWAFKeepsSingleStreamIsolation(t *testing.T) {
+	fake := &fakeLTS{
+		groups:      map[string]string{"hwyun-waf-logs": "g-waf"},
+		streams:     map[string][]string{"hwyun-waf-logs": {"hwyun-waf-logs-attack"}},
+		counts:      map[string]int64{"hwyun-waf-logs-attack": 888},
+		failStreams: map[string]bool{"hwyun-waf-logs-attack": true},
+	}
+	p := newAggProvider(t, logquery.LogTypeWAF)
+	res, err := p.aggregateWith(context.Background(), fake, aggParams())
+	if err != nil {
+		t.Fatalf("WAF 路径不应因单流失败而报错: %v", err)
+	}
+	if res == nil || res.Total != 0 {
+		t.Fatalf("失败的流不计入, got %+v", res)
+	}
+}
+
+// 源码级守卫:app 聚合的 ListLogs 必须走 withLTSRetry(appLTSGate)。
+// 华为 LTS 网关限流 APIGW.0308 是 10 QPS/用户,而 app 是几十上百条流的 8 并发扇出,
+// 直接打必然 429;失败流若只 Warn 就会让 Total 静默偏小。
+func TestAppAggregateGoesThroughLTSGate(t *testing.T) {
+	raw, err := os.ReadFile("provider.go")
+	if err != nil {
+		t.Fatalf("read provider.go: %v", err)
+	}
+	src := string(raw)
+	if !strings.Contains(src, `p.withLTSRetry(ctx, "aggregate/"+groupID, call)`) {
+		t.Fatal("app 聚合的 ListLogs 必须包在 p.withLTSRetry 里(限流重试 + 闸门)")
+	}
+	if strings.Contains(src, "aggregateStreamWith(api,") {
+		t.Fatal("aggregateStreamWith 调用缺少 ctx:无法走闸门/取消")
 	}
 }

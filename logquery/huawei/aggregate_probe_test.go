@@ -210,9 +210,13 @@ func TestLiveAggregateStreamDirect(t *testing.T) {
 			continue
 		}
 		now := time.Now().UnixMilli()
-		res := hp.aggregateStreamWith(hp.lts(), ids["hwyun-waf-logs"], kind, s, logquery.AggregateParams{
+		res, err := hp.aggregateStreamWith(ctx, hp.lts(), ids["hwyun-waf-logs"], kind, s, logquery.AggregateParams{
 			StartTime: now - 24*3600_000, EndTime: now, BucketSec: 900,
 		}, "")
+		if err != nil {
+			t.Logf("direct: err=%v", err)
+			continue
+		}
 		t.Logf("direct: total=%d buckets=%d topn=%d", res.Total, len(res.Buckets), len(res.TopN))
 	}
 }
