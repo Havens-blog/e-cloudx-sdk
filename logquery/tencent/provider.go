@@ -99,19 +99,50 @@ type topicsEntry struct {
 
 var topicsCacheInst = &topicsCache{entries: make(map[string]topicsEntry)}
 
+// topicsDescriber 是 listTopicsWithCache 对腾讯云 CLS 客户端的最小依赖,
+// 只为能在单测里注入「第 N 页失败」的假客户端,验证缓存不会被残缺清单污染。
+type topicsDescriber interface {
+	DescribeTopicsWithContext(ctx context.Context, req *cls.DescribeTopicsRequest) (*cls.DescribeTopicsResponse, error)
+}
+
+// listTopicsCached 带缓存枚举 topic(每区域)。
 func (p *provider) listTopicsCached(ctx context.Context, region string) ([]string, map[string]string) {
+	client, err := p.clsClient(region)
+	if err != nil {
+		return nil, nil
+	}
+	return p.listTopicsWithCache(ctx, region, client)
+}
+
+// listTopicsWithCache 缓存命中直接返回;否则分页拉全量,**只有完整拉完才写缓存**。
+//
+// 写缓存的门槛是 complete 而不是 len(ids) > 0:分页中途某页失败时 collectTopics
+// 会把已拿到的部分清单尽力返回(complete=false),此时若照旧写缓存,残缺名单会把
+// 源列表/搜索/聚合整整钉死一个 TTL——用户看到的是「腾讯云日志源少了一截」,
+// 且重试也无效(issue #865)。部分清单只用于本轮降级,下一轮重新全量枚举。
+func (p *provider) listTopicsWithCache(ctx context.Context, region string, client topicsDescriber) ([]string, map[string]string) {
 	topicsCacheInst.mu.Lock()
 	if e, ok := topicsCacheInst.entries[region]; ok && time.Now().Before(e.expires) {
 		topicsCacheInst.mu.Unlock()
 		return e.topics, e.names
 	}
 	topicsCacheInst.mu.Unlock()
-	client, err := p.clsClient(region)
-	if err != nil {
-		return nil, nil
+
+	ids, names, complete := collectTopics(ctx, p.logger, region, client)
+	if complete && len(ids) > 0 {
+		topicsCacheInst.mu.Lock()
+		topicsCacheInst.entries[region] = topicsEntry{topics: ids, names: names, expires: time.Now().Add(topicKindTTL)}
+		topicsCacheInst.mu.Unlock()
 	}
-	var ids []string
-	names := make(map[string]string)
+	return ids, names
+}
+
+// collectTopics 按 offset/limit=100 分页拉取全量 topic(CLS 单页上限 100)。
+//
+// 返回 complete 表示本轮是否完整:自然终止(空页 / 不足一页)为 true;某页
+// DescribeTopics 出错为 false,此时 ids/names 是残缺的部分结果。
+func collectTopics(ctx context.Context, logger *elog.Component, region string, client topicsDescriber) (ids []string, names map[string]string, complete bool) {
+	names = make(map[string]string)
 	req := cls.NewDescribeTopicsRequest()
 	offset := int64(0)
 	limit := int64(100)
@@ -120,13 +151,13 @@ func (p *provider) listTopicsCached(ctx context.Context, region string) ([]strin
 		req.Limit = &limit
 		resp, err := client.DescribeTopicsWithContext(ctx, req)
 		if err != nil {
-			p.logger.Warn("[logquery-tencent] list topics failed",
-				elog.String("region", region), elog.FieldErr(err))
-			break
+			logger.Warn("[logquery-tencent] list topics failed: 本轮只拿到部分清单,不写缓存",
+				elog.String("region", region), elog.Int("got", len(ids)), elog.FieldErr(err))
+			return ids, names, false
 		}
 		body := resp.Response
 		if body == nil || len(body.Topics) == 0 {
-			break
+			return ids, names, true
 		}
 		for _, t := range body.Topics {
 			if t == nil || t.TopicId == nil {
@@ -139,16 +170,10 @@ func (p *provider) listTopicsCached(ctx context.Context, region string) ([]strin
 			}
 		}
 		if len(body.Topics) < 100 {
-			break
+			return ids, names, true
 		}
 		offset += int64(len(body.Topics))
 	}
-	if len(ids) > 0 {
-		topicsCacheInst.mu.Lock()
-		topicsCacheInst.entries[region] = topicsEntry{topics: ids, names: names, expires: time.Now().Add(topicKindTTL)}
-		topicsCacheInst.mu.Unlock()
-	}
-	return ids, names
 }
 
 // provider 腾讯云日志 provider。
