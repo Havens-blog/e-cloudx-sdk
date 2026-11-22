@@ -117,7 +117,7 @@ func TestListTopicsWithCacheDoesNotCacheIncomplete(t *testing.T) {
 		t.Fatalf("降级返回应为 100 条,得到 %d", len(ids))
 	}
 	topicsCacheInst.mu.Lock()
-	_, polluted := topicsCacheInst.entries["ap-guangzhou"]
+	_, polluted := topicsCacheInst.entries[topicsCacheKey(1, "ap-guangzhou")]
 	topicsCacheInst.mu.Unlock()
 	if polluted {
 		t.Fatal("分页中途失败的部分清单不得写入缓存(issue #865)")
@@ -136,12 +136,38 @@ func TestListTopicsWithCacheCachesComplete(t *testing.T) {
 		t.Fatalf("完整枚举应返回 3 条,得到 %d", len(ids))
 	}
 	topicsCacheInst.mu.Lock()
-	e, ok := topicsCacheInst.entries["ap-shanghai"]
+	e, ok := topicsCacheInst.entries[topicsCacheKey(1, "ap-shanghai")]
 	topicsCacheInst.mu.Unlock()
 	if !ok {
 		t.Fatal("完整清单应写入缓存")
 	}
 	if len(e.topics) != 3 {
 		t.Fatalf("缓存里应为 3 条,得到 %d", len(e.topics))
+	}
+}
+
+// 同一进程两个腾讯账号共用同一个 region 时,清单缓存必须按账号隔离
+// (OpenCodeReview 对 5a531ca 的意见:缓存 key 曾只有 region)。
+func TestListTopicsWithCacheIsolatedPerAccount(t *testing.T) {
+	restore := resetTopicsCache(t)
+	defer restore()
+	ctx := context.Background()
+	region := "ap-guangzhou"
+
+	acctA := newCacheTestProvider()
+	fakeA := &fakeTopicsDescriber{pages: []*cls.DescribeTopicsResponse{topicPage("A1", "A2")}}
+	if got, _ := acctA.listTopicsWithCache(ctx, region, fakeA); len(got) != 2 {
+		t.Fatalf("账号 A 应拿到 2 条,得到 %d", len(got))
+	}
+
+	acctB := newCacheTestProvider()
+	acctB.account = &domain.CloudAccount{ID: 2, Name: "b", AccessKeyID: "k2", AccessKeySecret: "s2"}
+	fakeB := &fakeTopicsDescriber{pages: []*cls.DescribeTopicsResponse{topicPage("B1")}}
+	got, _ := acctB.listTopicsWithCache(ctx, region, fakeB)
+	if len(got) != 1 || got[0] != "B1" {
+		t.Fatalf("账号 B 必须拿自己的清单(1 条 B1),不能命中账号 A 的缓存,得到 %v", got)
+	}
+	if fakeB.calls != 1 {
+		t.Fatalf("账号 B 不应命中账号 A 的缓存,应真实调用 1 次,得到 %d", fakeB.calls)
 	}
 }

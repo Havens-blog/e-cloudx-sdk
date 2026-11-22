@@ -12,6 +12,7 @@ package volcengine
 import (
 	"context"
 	"fmt"
+	"strconv"
 	"sort"
 	"strings"
 	"sync"
@@ -146,6 +147,14 @@ func (p *provider) listTopicsCached(ctx context.Context, region string) []*tls.T
 	return p.listTopicsWithCache(region, p.tlsClient(region))
 }
 
+// topicsCacheKey topic 清单缓存的 key:账号 + 区域。
+// 缓存是进程级单例,而 provider 是账号作用域(ProviderCreator 闭包捕获
+// domain.CloudAccount)——只按 region 做 key 的话,同进程第二个火山账号会
+// 直接命中第一个账号的清单,最长错一个 TTL(与腾讯侧同一问题)。
+func topicsCacheKey(accountID int64, region string) string {
+	return strconv.FormatInt(accountID, 10) + "/" + region
+}
+
 // listTopicsWithCache 缓存命中直接返回;否则分页拉全量,**只有完整拉完才写缓存**。
 //
 // 写缓存的门槛是 complete 而不是 len(all) > 0:并发页里某一页失败时 fetchTopics
@@ -153,8 +162,9 @@ func (p *provider) listTopicsCached(ctx context.Context, region string) []*tls.T
 // 名单会把源列表/搜索/聚合整整钉死一个 TTL——用户看到的是「火山云日志源少了
 // 一截」且重试无效(issue #865)。部分清单只用于本轮降级,下一轮重新全量枚举。
 func (p *provider) listTopicsWithCache(region string, client tls.Client) []*tls.Topic {
+	key := topicsCacheKey(p.account.ID, region)
 	topicsCacheInst.mu.Lock()
-	if e, ok := topicsCacheInst.entries[region]; ok && time.Now().Before(e.expires) {
+	if e, ok := topicsCacheInst.entries[key]; ok && time.Now().Before(e.expires) {
 		topicsCacheInst.mu.Unlock()
 		return e.topics
 	}
@@ -163,7 +173,7 @@ func (p *provider) listTopicsWithCache(region string, client tls.Client) []*tls.
 	all, complete := p.fetchTopics(region, client)
 	if complete && len(all) > 0 {
 		topicsCacheInst.mu.Lock()
-		topicsCacheInst.entries[region] = topicsEntry{topics: all, expires: time.Now().Add(topicsTTL)}
+		topicsCacheInst.entries[key] = topicsEntry{topics: all, expires: time.Now().Add(topicsTTL)}
 		topicsCacheInst.mu.Unlock()
 	}
 	return all
