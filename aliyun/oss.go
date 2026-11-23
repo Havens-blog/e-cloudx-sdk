@@ -35,8 +35,14 @@ func NewOSSAdapter(accessKeyID, accessKeySecret, defaultRegion string, logger *e
 }
 
 // ossEndpoint 返回地域对应的 OSS 公网端点。
+//
+// 必须显式带 https:// 前缀:aliyun-oss-go-sdk 的 urlMaker.InitExt 对不带 scheme 的
+// endpoint 默认走 http(oss/conn.go 的 InitExt,"http://" > "https://" > 兜底 http),
+// 于是桶列表/桶统计等所有请求(含 Authorization 头里的 AccessKeyId 与签名)都以明文
+// 传输;出向 80 端口被封的网络里还会直接 dial 超时——生产环境 cn-nanjing 的 OSS 同步
+// 就是这样 100% 失败的(connectex: 47.122.12.194:80 无响应)。
 func ossEndpoint(region string) string {
-	return fmt.Sprintf("oss-%s.aliyuncs.com", region)
+	return fmt.Sprintf("https://oss-%s.aliyuncs.com", region)
 }
 
 // ossStatsRegion 决定「取某个桶的统计信息」该用哪个地域的端点。

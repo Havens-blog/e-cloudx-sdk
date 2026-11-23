@@ -1,4 +1,4 @@
-﻿// app.go 华为云 LTS 应用业务日志(LogTypeApp)。
+// app.go 华为云 LTS 应用业务日志(LogTypeApp)。
 //
 // 与 WAF/ELB 不同,应用日志在 LTS 侧没有固定组名:日志组/流由账号自行创建
 // (ECS/CCE 采集器或 SDK 直写),字段形态也没有统一 schema。因此:

@@ -13,8 +13,10 @@ import (
 	"context"
 	"fmt"
 	"sort"
+	"strconv"
 	"strings"
 	"sync"
+	"sync/atomic"
 	"time"
 
 	"github.com/Havens-blog/e-cloudx-sdk/logquery"
@@ -142,14 +144,46 @@ func (p *provider) tlsClient(region string) tls.Client {
 
 // listTopicsCached DescribeTopics 清单(带缓存,每区域)。
 func (p *provider) listTopicsCached(ctx context.Context, region string) []*tls.Topic {
+	return p.listTopicsWithCache(region, p.tlsClient(region))
+}
+
+// topicsCacheKey topic 清单缓存的 key:账号 + 区域。
+// 缓存是进程级单例,而 provider 是账号作用域(ProviderCreator 闭包捕获
+// domain.CloudAccount)——只按 region 做 key 的话,同进程第二个火山账号会
+// 直接命中第一个账号的清单,最长错一个 TTL(与腾讯侧同一问题)。
+func topicsCacheKey(accountID int64, region string) string {
+	return strconv.FormatInt(accountID, 10) + "/" + region
+}
+
+// listTopicsWithCache 缓存命中直接返回;否则分页拉全量,**只有完整拉完才写缓存**。
+//
+// 写缓存的门槛是 complete 而不是 len(all) > 0:并发页里某一页失败时 fetchTopics
+// 会把其余页已拿到的部分清单尽力返回(complete=false),此时若照旧写缓存,缺页的
+// 名单会把源列表/搜索/聚合整整钉死一个 TTL——用户看到的是「火山云日志源少了
+// 一截」且重试无效(issue #865)。部分清单只用于本轮降级,下一轮重新全量枚举。
+func (p *provider) listTopicsWithCache(region string, client tls.Client) []*tls.Topic {
+	key := topicsCacheKey(p.account.ID, region)
 	topicsCacheInst.mu.Lock()
-	if e, ok := topicsCacheInst.entries[region]; ok && time.Now().Before(e.expires) {
+	if e, ok := topicsCacheInst.entries[key]; ok && time.Now().Before(e.expires) {
 		topicsCacheInst.mu.Unlock()
 		return e.topics
 	}
 	topicsCacheInst.mu.Unlock()
 
-	client := p.tlsClient(region)
+	all, complete := p.fetchTopics(region, client)
+	if complete && len(all) > 0 {
+		topicsCacheInst.mu.Lock()
+		topicsCacheInst.entries[key] = topicsEntry{topics: all, expires: time.Now().Add(topicsTTL)}
+		topicsCacheInst.mu.Unlock()
+	}
+	return all
+}
+
+// fetchTopics 首页拿 Total 后并发拉余页。
+//
+// 返回 complete 表示本轮是否完整:首页失败返回 (nil,false);任一并发页失败
+// 返回(其余页合并后的部分清单,false);全部成功返回 (全量,true)。
+func (p *provider) fetchTopics(region string, client tls.Client) ([]*tls.Topic, bool) {
 	const pageSize = 100
 	// DescribeTopics 每页固定延迟大(~4s),1130 topic 串行 12 页 ~50s 冷枚举。
 	// 首页拿 Total 后并发拉余页,冷枚举收敛到 ~单页 + 一批并发页。
@@ -161,16 +195,17 @@ func (p *provider) listTopicsCached(ctx context.Context, region string) []*tls.T
 	if err != nil {
 		p.logger.Warn("[logquery-volcengine] describe topics failed",
 			elog.String("region", region), elog.FieldErr(err))
-		return nil
+		return nil, false
 	}
 	if first == nil || len(first.Topics) == 0 {
-		return nil
+		return nil, true
 	}
 	all := first.Topics
 	pages := (first.Total + pageSize - 1) / pageSize
 	if pages > 1 {
 		slots := make([][]*tls.Topic, pages+1)
 		slots[1] = first.Topics
+		var failed int32
 		var wg sync.WaitGroup
 		sem := make(chan struct{}, 12)
 		for pn := 2; pn <= pages; pn++ {
@@ -183,7 +218,8 @@ func (p *provider) listTopicsCached(ctx context.Context, region string) []*tls.T
 					ProjectID: "", PageNumber: pn, PageSize: pageSize,
 				})
 				if err != nil {
-					p.logger.Warn("[logquery-volcengine] describe topics page failed",
+					atomic.AddInt32(&failed, 1)
+					p.logger.Warn("[logquery-volcengine] describe topics page failed: 本轮清单缺页,不写缓存",
 						elog.String("region", region), elog.Int("page", pn), elog.FieldErr(err))
 					return
 				}
@@ -196,13 +232,11 @@ func (p *provider) listTopicsCached(ctx context.Context, region string) []*tls.T
 		for pn := 2; pn <= pages; pn++ {
 			all = append(all, slots[pn]...)
 		}
+		if atomic.LoadInt32(&failed) > 0 {
+			return all, false
+		}
 	}
-	if len(all) > 0 {
-		topicsCacheInst.mu.Lock()
-		topicsCacheInst.entries[region] = topicsEntry{topics: all, expires: time.Now().Add(topicsTTL)}
-		topicsCacheInst.mu.Unlock()
-	}
-	return all
+	return all, true
 }
 
 // isAccessTopic 名字是否为访问日志形态:含 "access"(覆盖 *_access /

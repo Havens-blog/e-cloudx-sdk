@@ -1,4 +1,4 @@
-﻿package huawei
+package huawei
 
 import (
 	"context"
@@ -10,13 +10,13 @@ import (
 	"strings"
 	"sync"
 
-	"github.com/Havens-blog/e-cloudx-sdk/logquery"
 	"github.com/Havens-blog/e-cloudx-sdk/domain"
+	"github.com/Havens-blog/e-cloudx-sdk/logquery"
+	"github.com/gotomicro/ego/core/elog"
 	basic "github.com/huaweicloud/huaweicloud-sdk-go-v3/core/auth/basic"
 	lts "github.com/huaweicloud/huaweicloud-sdk-go-v3/services/lts/v2"
 	ltsmodel "github.com/huaweicloud/huaweicloud-sdk-go-v3/services/lts/v2/model"
 	ltsregion "github.com/huaweicloud/huaweicloud-sdk-go-v3/services/lts/v2/region"
-	"github.com/gotomicro/ego/core/elog"
 )
 
 // defaultRegion 华为云日志所在区域(Phase 0 实测全部源在 cn-south-1)。
@@ -31,9 +31,9 @@ func init() {
 
 // hGroup catalog 条目:按组名枚举流,classify 按流名后缀映射。
 type hGroup struct {
-	group  string
-	name   string
-	note   string
+	group string
+	name  string
+	note  string
 }
 
 // catalog 已知 WAF/ELB 组的展示名与备注(Phase 0 实测)。
@@ -154,6 +154,35 @@ func (p *provider) ListLogSources(ctx context.Context, account *domain.CloudAcco
 	return sources, err
 }
 
+// listGroupStreams 枚举单个日志组的流清单,走 LTS 限流闸门与退避重试。
+// WAF/ELB 组由账号实际命名动态发现(不再固定 2 个),组数变多后并发裸调
+// 会撞 LTS ~10 QPS 限流(APIGW.0308);被限流时这里只 Warn 跳过整组,
+// 组内流会静默从源清单/查询/聚合三处消失,与 app 路径共用同一闸门即可避免。
+func (p *provider) listGroupStreams(ctx context.Context, group string) (*ltsmodel.ListLogStreamsResponse, error) {
+	return p.listGroupStreamsWith(ctx, p.lts(), group)
+}
+
+// listGroupStreamsWith 与 listGroupStreams 同语义，但 api 由调用方注入。
+// Aggregate 内部拿的是调用方传入的 api（单测注入 fake 流清单），若走 p.lts()
+// 会绕开注入点去建真实客户端：既测不到分桶逻辑，也会在单测里真连云端。
+func (p *provider) listGroupStreamsWith(ctx context.Context, api ltsAPI, group string) (*ltsmodel.ListLogStreamsResponse, error) {
+	var streams *ltsmodel.ListLogStreamsResponse
+	err := p.withLTSRetry(ctx, "list_streams/"+group, func() error {
+		resp, callErr := api.ListLogStreams(&ltsmodel.ListLogStreamsRequest{
+			LogGroupName: &group,
+		})
+		if callErr != nil {
+			return callErr
+		}
+		streams = resp
+		return nil
+	})
+	if err != nil {
+		return nil, err
+	}
+	return streams, nil
+}
+
 // listSourcesUncached 真实枚举(groupIDs 提前暴露凭证/网络问题,而非静默空清单)。
 func (p *provider) listSourcesUncached(ctx context.Context) ([]logquery.LogSource, error) {
 	if p.logType == logquery.LogTypeApp {
@@ -166,9 +195,7 @@ func (p *provider) listSourcesUncached(ctx context.Context) ([]logquery.LogSourc
 	}
 	var out []logquery.LogSource
 	for _, src := range wafELBGroups(ids) {
-		streams, err := p.lts().ListLogStreams(&ltsmodel.ListLogStreamsRequest{
-			LogGroupName: &src.group,
-		})
+		streams, err := p.listGroupStreams(ctx, src.group)
 		if err != nil {
 			// 单组失败隔离:记日志,不阻塞其他组
 			p.logger.Warn("[logquery-huawei] list streams failed",
@@ -233,9 +260,7 @@ func (p *provider) Search(ctx context.Context, account *domain.CloudAccount, par
 		if id := ids[src.group]; id == "" {
 			continue // 组不存在(账号无此日志组),静默跳过
 		}
-		streams, err := p.lts().ListLogStreams(&ltsmodel.ListLogStreamsRequest{
-			LogGroupName: &src.group,
-		})
+		streams, err := p.listGroupStreams(ctx, src.group)
 		if err != nil {
 			p.logger.Warn("[logquery-huawei] list streams failed",
 				elog.String("group", src.group), elog.FieldErr(err))
@@ -437,12 +462,12 @@ func (p *provider) aggregateWith(ctx context.Context, api ltsAPI, params logquer
 			if id := ids[src.group]; id == "" {
 				continue
 			}
-			streams, err := api.ListLogStreams(&ltsmodel.ListLogStreamsRequest{
-				LogGroupName: &src.group,
-			})
-			if err != nil {
+			// 统一走 listGroupStreams：带重试与错误处理（#22 评审修复），
+			// 与 ListLogSources/Search 的组流枚举同源。
+			streams, listErr := p.listGroupStreamsWith(ctx, api, src.group)
+			if listErr != nil {
 				p.logger.Warn("[logquery-huawei] aggregate list streams failed",
-					elog.String("group", src.group), elog.FieldErr(err))
+					elog.String("group", src.group), elog.FieldErr(listErr))
 				continue
 			}
 			for _, s := range derefStreams(streams.LogStreams) {

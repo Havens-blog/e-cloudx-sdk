@@ -244,14 +244,17 @@ func (p *provider) k8sEventTargets() []slsSource {
 	var out []slsSource
 	for _, region := range k8sEventRegions {
 		projects, _ := logstoreEnumCache.get("k8s-projects/"+region, func() []string {
-			ps, err := p.clientFor(region).ListProject()
+			// 裸 ListProject() 不带 offset/size，服务端只回首页（与 ListLogStore
+			// 同源的静默截断）；账号下 project 超过首页条数时会漏掉排在后面的
+			// k8s-log-* 集群，必须走 listAllProjectNames 分页（project_page.go）。
+			names, err := listAllProjectNames(p.clientFor(region))
 			if err != nil {
 				p.logger.Warn("[logquery-aliyun] list k8s projects failed",
 					elog.String("region", region), elog.FieldErr(err))
 				return nil
 			}
 			var ks []string
-			for _, pr := range ps {
+			for _, pr := range names {
 				if strings.HasPrefix(pr, "k8s-log-") {
 					ks = append(ks, pr)
 				}
