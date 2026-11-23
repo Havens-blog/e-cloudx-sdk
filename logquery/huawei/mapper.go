@@ -40,30 +40,51 @@ const (
 // 账号内 12 个组,ELB 组 3 个,白名单只覆盖 1 个。
 //
 // 规则(命中即归类,组名为空返回 false):
-//   - 组名含 waf-logs 或以 waf 结尾 -> WAF 组(攻击/访问由流名后缀再分)
-//   - 组名以 elb 结尾 -> ELB 组
+//   - 组名含 waf-logs,或以**分隔符锚定**的 waf 结尾 -> WAF 组(攻击/访问由流名后缀再分)
+//   - 组名以**分隔符锚定**的 elb 结尾 -> ELB 组
+//
+// 锚定必须是「整名或 -/_ 分隔」:只判裸后缀会把恰好以这几个字母结尾的应用组
+// 误吞(prod-shelb / biz-kolb / team-drawf),而这些组一旦被判为 WAF/ELB,
+// 就会被 appGroups 从应用源里排除 —— 误判的代价是该组日志在两个页签都查不到,
+// 正是本次要修的那类"源静默消失"。分隔符锚定与 classify 的流名后缀判定
+// (-attack/-access)保持同一风格。
 func classifyGroup(name string) (groupClass, bool) {
 	lower := strings.ToLower(strings.TrimSpace(name))
 	if lower == "" {
 		return "", false
 	}
-	// WAF:组名含 waf-logs(如 hwyun-waf-logs / hwyun-waf-logs-2)或以 waf 结尾;
-	// 仅含 waf 子串的组(如应用自己叫 waf-service-logs)不算,避免误吞应用日志组。
-	if strings.Contains(lower, "waf-logs") || strings.HasSuffix(lower, "waf") {
+	// WAF:组名含 waf-logs(如 hwyun-waf-logs / hwyun-waf-logs-2),或整名/分隔符
+	// 锚定的 waf(hw-waf / waf)。仅含 waf 子串(waf-service-logs)或裸后缀
+	// (team-drawf)不算,避免误吞应用日志组。
+	if strings.Contains(lower, "waf-logs") || anchoredSuffix(lower, "waf") {
 		return groupClassWAF, true
 	}
-	// ELB:组名以 elb 结尾(eda-prod-elb / dev-elb / eda-uat-elb)。刻意不匹配
-	// 中间的 -elb- 段,否则 my-elb-service 这类应用组会被误吞。
-	if strings.HasSuffix(lower, "elb") {
+	// ELB:整名/分隔符锚定的 elb(eda-prod-elb / dev-elb / eda-uat-elb / elb)。
+	// 刻意不匹配中间的 -elb- 段,否则 my-elb-service 这类应用组会被误吞;
+	// 也不接受裸后缀(prod-shelb)。
+	if anchoredSuffix(lower, "elb") {
 		return groupClassELB, true
 	}
 	return "", false
 }
 
-// classify 按 group/stream 名分类日志形态(流为动态枚举;未识别组合返回
-// ok=false,不产出条目)。组级形态由 classifyGroup 判定,WAF 组再按流名后缀
-// 区分攻击/访问;ELB 组的流名不统一(eda-prod-*-elb、dayu-access-gateway),
+// anchoredSuffix 判断 name 是否等于 suffix 或以「分隔符 + suffix」结尾。
+// 分隔符取 - 与 _(LTS 组名两种习惯都有,如 eda-prod-elb / hw_waf)。
+func anchoredSuffix(name, suffix string) bool {
+	if name == suffix {
+		return true
+	}
+	return strings.HasSuffix(name, "-"+suffix) || strings.HasSuffix(name, "_"+suffix)
+}
+
+// classify 按 group/stream 名分类日志形态(流为动态枚举;组不属于 WAF/ELB 时
+// 返回 ok=false,不产出条目)。组级形态由 classifyGroup 判定,WAF 组再按流名
+// 后缀区分攻击/访问;ELB 组的流名不统一(eda-prod-*-elb、dayu-access-gateway),
 // 故组内流一律按 ELB 访问日志处理。
+//
+// WAF 组内未命中 -attack 的流同样**不丢弃**,按访问日志处理:组一旦被判为
+// WAF/ELB 就会被 appGroups 从应用源排除,这里再返回 false 会让该流在
+// WAF/SLB 与应用两个页签都消失(与 ELB 分支不对称,即本次修掉的反向复现)。
 func classify(group, stream string) (mapperKind, bool) {
 	cls, ok := classifyGroup(group)
 	if !ok {
@@ -75,10 +96,7 @@ func classify(group, stream string) (mapperKind, bool) {
 	if strings.HasSuffix(stream, "-attack") {
 		return kindWAFAttack, true
 	}
-	if strings.HasSuffix(stream, "-access") {
-		return kindWAFAccess, true
-	}
-	return "", false
+	return kindWAFAccess, true
 }
 
 // mapContent 按 kind 把一条 LTS content 映射为统一模型。
