@@ -1,6 +1,7 @@
 package aliyun
 
 import (
+	"strings"
 	"testing"
 	"time"
 
@@ -119,7 +120,25 @@ func TestOSSStatsRegionFromBucketLocation(t *testing.T) {
 
 // TestOSSEndpoint 断言端点拼接(统计客户端按地域构造端点)。
 func TestOSSEndpoint(t *testing.T) {
-	if got := ossEndpoint("cn-shenzhen"); got != "oss-cn-shenzhen.aliyuncs.com" {
+	if got := ossEndpoint("cn-shenzhen"); got != "https://oss-cn-shenzhen.aliyuncs.com" {
 		t.Fatalf("ossEndpoint = %q", got)
+	}
+}
+
+// TestOSSEndpointForcesHTTPS 断言真正交给 aliyun-oss-go-sdk 的 endpoint 带 https scheme。
+//
+// 该 SDK 对不带 scheme 的 endpoint 一律按 http 处理(oss/conn.go 的 InitExt),于是
+// 桶列表/桶统计全部走明文,且出向 80 被封时直接 dial 超时。单测直接读 client.Config.Endpoint:
+// 它是 SDK 收到的原始串,不经过 SDK 内部默认值,故能证明"我们确实传了 https"。
+func TestOSSEndpointForcesHTTPS(t *testing.T) {
+	a := newOSSTestAdapter()
+	for _, region := range []string{"cn-hangzhou", "cn-nanjing", ""} {
+		client, err := a.createClient(region)
+		if err != nil {
+			t.Fatalf("createClient(%q): %v", region, err)
+		}
+		if !strings.HasPrefix(client.Config.Endpoint, "https://") {
+			t.Fatalf("createClient(%q).Config.Endpoint = %q, 期望 https:// 前缀", region, client.Config.Endpoint)
+		}
 	}
 }
