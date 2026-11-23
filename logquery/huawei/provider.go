@@ -1,21 +1,22 @@
-﻿package huawei
+package huawei
 
 import (
-	"encoding/json"
 	"context"
+	"encoding/json"
+	"errors"
 	"fmt"
 	"sort"
 	"strconv"
 	"strings"
 	"sync"
 
-	"github.com/Havens-blog/e-cloudx-sdk/logquery"
 	"github.com/Havens-blog/e-cloudx-sdk/domain"
+	"github.com/Havens-blog/e-cloudx-sdk/logquery"
+	"github.com/gotomicro/ego/core/elog"
 	basic "github.com/huaweicloud/huaweicloud-sdk-go-v3/core/auth/basic"
 	lts "github.com/huaweicloud/huaweicloud-sdk-go-v3/services/lts/v2"
 	ltsmodel "github.com/huaweicloud/huaweicloud-sdk-go-v3/services/lts/v2/model"
 	ltsregion "github.com/huaweicloud/huaweicloud-sdk-go-v3/services/lts/v2/region"
-	"github.com/gotomicro/ego/core/elog"
 )
 
 // defaultRegion 华为云日志所在区域(Phase 0 实测全部源在 cn-south-1)。
@@ -30,9 +31,9 @@ func init() {
 
 // hGroup catalog 条目:按组名枚举流,classify 按流名后缀映射。
 type hGroup struct {
-	group  string
-	name   string
-	note   string
+	group string
+	name  string
+	note  string
 }
 
 // catalog 已知 WAF/ELB 组的展示名与备注(Phase 0 实测)。
@@ -106,6 +107,15 @@ func (p *provider) lts() *lts.LtsClient {
 	return p.ltsClient
 }
 
+// ltsAPI 聚合链路所需的最小 LTS 能力面(组清单 + 流清单 + 查询)。
+// 抽成接口只为单测能注入 fake 流清单;*lts.LtsClient 天然满足,
+// 生产路径一律由 p.lts() 构造,不引入第二套 client 生命周期。
+type ltsAPI interface {
+	ListLogGroups(req *ltsmodel.ListLogGroupsRequest) (*ltsmodel.ListLogGroupsResponse, error)
+	ListLogStreams(req *ltsmodel.ListLogStreamsRequest) (*ltsmodel.ListLogStreamsResponse, error)
+	ListLogs(req *ltsmodel.ListLogsRequest) (*ltsmodel.ListLogsResponse, error)
+}
+
 // Cloud 实现 LogProvider。
 func (p *provider) Cloud() domain.CloudProvider { return domain.CloudProviderHuawei }
 
@@ -114,7 +124,12 @@ func (p *provider) LogType() logquery.LogType { return p.logType }
 
 // LogSource 与 Search 均需 group name -> id 映射,ListLogGroups 一次解析。
 func (p *provider) groupIDs(ctx context.Context) (map[string]string, error) {
-	resp, err := p.lts().ListLogGroups(&ltsmodel.ListLogGroupsRequest{})
+	return p.groupIDsWith(ctx, p.lts())
+}
+
+// groupIDsWith 同 groupIDs,client 由调用方注入(生产传 p.lts(),单测传 fake)。
+func (p *provider) groupIDsWith(ctx context.Context, api ltsAPI) (map[string]string, error) {
+	resp, err := api.ListLogGroups(&ltsmodel.ListLogGroupsRequest{})
 	if err != nil {
 		return nil, fmt.Errorf("huawei logquery: list log groups: %w", err)
 	}
@@ -144,9 +159,16 @@ func (p *provider) ListLogSources(ctx context.Context, account *domain.CloudAcco
 // 会撞 LTS ~10 QPS 限流(APIGW.0308);被限流时这里只 Warn 跳过整组,
 // 组内流会静默从源清单/查询/聚合三处消失,与 app 路径共用同一闸门即可避免。
 func (p *provider) listGroupStreams(ctx context.Context, group string) (*ltsmodel.ListLogStreamsResponse, error) {
+	return p.listGroupStreamsWith(ctx, p.lts(), group)
+}
+
+// listGroupStreamsWith 与 listGroupStreams 同语义，但 api 由调用方注入。
+// Aggregate 内部拿的是调用方传入的 api（单测注入 fake 流清单），若走 p.lts()
+// 会绕开注入点去建真实客户端：既测不到分桶逻辑，也会在单测里真连云端。
+func (p *provider) listGroupStreamsWith(ctx context.Context, api ltsAPI, group string) (*ltsmodel.ListLogStreamsResponse, error) {
 	var streams *ltsmodel.ListLogStreamsResponse
 	err := p.withLTSRetry(ctx, "list_streams/"+group, func() error {
-		resp, callErr := p.lts().ListLogStreams(&ltsmodel.ListLogStreamsRequest{
+		resp, callErr := api.ListLogStreams(&ltsmodel.ListLogStreamsRequest{
 			LogGroupName: &group,
 		})
 		if callErr != nil {
@@ -390,19 +412,20 @@ func (p *provider) fetchStreamLogsMapped(ctx context.Context, groupID string, st
 // 下推(活体验证 24h/98.7 万条 1.2s),每流分桶(+TopN,仅 ELB host 维度),
 // Total = 分桶求和。单流失败隔离。方言差异见 aggregate.go 头注。
 func (p *provider) Aggregate(ctx context.Context, account *domain.CloudAccount, params logquery.AggregateParams) (*logquery.AggregateResult, error) {
+	return p.aggregateWith(ctx, p.lts(), params)
+}
+
+// aggregateWith Aggregate 的实现:api 由调用方注入(单测传 fake 流清单)。
+func (p *provider) aggregateWith(ctx context.Context, api ltsAPI, params logquery.AggregateParams) (*logquery.AggregateResult, error) {
 	if params.EndTime <= params.StartTime {
 		return nil, fmt.Errorf("huawei logquery aggregate: invalid time window")
 	}
 	if params.BucketSec <= 0 {
 		params.BucketSec = logquery.PickBucketSec(params.StartTime, params.EndTime)
 	}
-	ids, err := p.groupIDs(ctx)
+	ids, err := p.groupIDsWith(ctx, api)
 	if err != nil {
 		return nil, err
-	}
-	resources := make(map[string]bool, len(params.Resources))
-	for _, r := range params.Resources {
-		resources[r] = true
 	}
 
 	type streamTarget struct {
@@ -411,41 +434,59 @@ func (p *provider) Aggregate(ctx context.Context, account *domain.CloudAccount, 
 		stream ltsmodel.ListLogStreamsResponseBody1LogStreams
 	}
 	var targets []streamTarget
-	for _, src := range wafELBGroups(ids) {
-		if id := ids[src.group]; id == "" {
-			continue
-		}
-		streams, err := p.listGroupStreams(ctx, src.group)
-		if err != nil {
-			p.logger.Warn("[logquery-huawei] aggregate list streams failed",
-				elog.String("group", src.group), elog.FieldErr(err))
-			continue
-		}
-		for _, s := range derefStreams(streams.LogStreams) {
-			kind, ok := classify(src.group, s.LogStreamName)
-			if !ok {
+	// enumErrs 收集"组流枚举"失败。枚举失败的组不会产生任何 target,
+	// 它的日志既进不了分桶也进不了单流 errs,Total 会静默偏小;
+	// 因此 app 路径必须把这些错误带出去(见下方汇总)。
+	var enumErrs []error
+	if p.logType == logquery.LogTypeApp {
+		// 应用日志没有 WAF/ELB 那种固定组:候选流必须与 ListLogSources/Search
+		// 同源(appGroups 动态发现),否则 app 的 Aggregate 一个 target 都拿不到,
+		// 全窗聚合恒返回 0,前端趋势图只能退回采样。
+		appStreams, appEnumErrs := p.listAppStreamsChecked(ctx, api, ids)
+		enumErrs = append(enumErrs, appEnumErrs...)
+		for _, cand := range appStreams {
+			if id := ids[cand.group]; id == "" {
 				continue
 			}
-			logType := logquery.LogTypeWAF
-			if kind == kindELB {
-				logType = logquery.LogTypeSLB
-			}
-			if logType != p.logType {
+			if !appResourceMatch(cand.group, cand.stream.LogStreamName, params.Resources) {
 				continue
 			}
-			if len(resources) > 0 {
-				hit := false
-				for _, r := range params.Resources {
-					if r == s.LogStreamName || r == src.group+"/"+s.LogStreamName {
-						hit = true
-						break
-					}
-				}
-				if !hit {
+			targets = append(targets, streamTarget{
+				group:  hGroup{group: cand.group, name: cand.group},
+				kind:   kindApp,
+				stream: cand.stream,
+			})
+		}
+	} else {
+		for _, src := range wafELBGroups(ids) {
+			if id := ids[src.group]; id == "" {
+				continue
+			}
+			// 统一走 listGroupStreams：带重试与错误处理（#22 评审修复），
+			// 与 ListLogSources/Search 的组流枚举同源。
+			streams, listErr := p.listGroupStreamsWith(ctx, api, src.group)
+			if listErr != nil {
+				p.logger.Warn("[logquery-huawei] aggregate list streams failed",
+					elog.String("group", src.group), elog.FieldErr(listErr))
+				continue
+			}
+			for _, s := range derefStreams(streams.LogStreams) {
+				kind, ok := classify(src.group, s.LogStreamName)
+				if !ok {
 					continue
 				}
+				logType := logquery.LogTypeWAF
+				if kind == kindELB {
+					logType = logquery.LogTypeSLB
+				}
+				if logType != p.logType {
+					continue
+				}
+				if !appResourceMatch(src.group, s.LogStreamName, params.Resources) {
+					continue
+				}
+				targets = append(targets, streamTarget{group: src, kind: kind, stream: s})
 			}
-			targets = append(targets, streamTarget{group: src, kind: kind, stream: s})
 		}
 	}
 
@@ -463,6 +504,7 @@ func (p *provider) Aggregate(ctx context.Context, account *domain.CloudAccount, 
 	}
 
 	results := make([]*logquery.AggregateResult, len(targets))
+	errs := make([]error, len(targets))
 	sem := make(chan struct{}, 8)
 	var wg sync.WaitGroup
 	for i, tgt := range targets {
@@ -475,7 +517,15 @@ func (p *provider) Aggregate(ctx context.Context, account *domain.CloudAccount, 
 			}
 			sem <- struct{}{}
 			defer func() { <-sem }()
-			results[i] = p.aggregateStream(ids[tgt.group.group], tgt.kind, tgt.stream, params, filterParts[tgt.kind])
+			results[i], errs[i] = p.aggregateStreamWith(ctx, api, ids[tgt.group.group], tgt.kind, tgt.stream, params, filterParts[tgt.kind])
+			if errs[i] != nil {
+				// 单流失败隔离:WAF/ELB 维持既有行为(告警 + 该流不计);
+				// app 的失败在下方汇总成显式错误,不让 Total 静默偏小。
+				p.logger.Warn("[logquery-huawei] aggregate stream failed",
+					elog.String("group", tgt.group.group),
+					elog.String("stream", tgt.stream.LogStreamName),
+					elog.FieldErr(errs[i]))
+			}
 		}()
 	}
 	wg.Wait()
@@ -512,12 +562,29 @@ func (p *provider) Aggregate(ctx context.Context, account *domain.CloudAccount, 
 	if len(merged.TopN) > providerTopN {
 		merged.TopN = merged.TopN[:providerTopN]
 	}
+	// 应用日志是多流扇出:任何一处 SQL 失败都会让 Total 偏小。这里放弃"静默少算",
+	// 返回已合并的部分结果 + 显式错误(cam 侧把错误写进 AggregateSourceOutcome.Error,
+	// 部分分桶仍参与归并) —— 用户既能拿到图,也能看到该源有失败。
+	if p.logType == logquery.LogTypeApp {
+		joined := errors.Join(append(append([]error{}, enumErrs...), errs...)...)
+		if joined != nil {
+			failedStreams := 0
+			for _, e := range errs {
+				if e != nil {
+					failedStreams++
+				}
+			}
+			// 组枚举失败与单流失败分开计数:前者影响整组(可能几十条流),不能只报成 1 条。
+			return merged, fmt.Errorf("应用日志聚合失败 %d 个组枚举失败、%d/%d 个流聚合失败(总数可能偏小): %w",
+				len(enumErrs), failedStreams, len(targets), joined)
+		}
+	}
 	return merged, nil
 }
 
 // aggregateStream 单流两条 SQL:分桶 + TopN(无维度的流跳过 TopN)。
 // analysisLogs 行为 map[string]any;t 已是毫秒(LTS __time 量纲)。
-func (p *provider) aggregateStream(groupID string, kind mapperKind, stream ltsmodel.ListLogStreamsResponseBody1LogStreams, params logquery.AggregateParams, filterPart string) *logquery.AggregateResult {
+func (p *provider) aggregateStreamWith(ctx context.Context, api ltsAPI, groupID string, kind mapperKind, stream ltsmodel.ListLogStreamsResponseBody1LogStreams, params logquery.AggregateParams, filterPart string) (*logquery.AggregateResult, error) {
 	result := &logquery.AggregateResult{}
 	runSQL := func(sql string, lines int32) ([]map[string]any, error) {
 		body := &ltsmodel.QueryLtsLogParams{
@@ -527,19 +594,36 @@ func (p *provider) aggregateStream(groupID string, kind mapperKind, stream ltsmo
 			IsAnalysisQuery: boolPtr(true),
 			Limit:           &lines,
 		}
-		resp, err := p.lts().ListLogs(&ltsmodel.ListLogsRequest{
-			LogGroupId:  groupID,
-			LogStreamId: stream.LogStreamId,
-			Body:        body,
-		})
+		var analysis *[]any
+		call := func() error {
+			resp, callErr := api.ListLogs(&ltsmodel.ListLogsRequest{
+				LogGroupId:  groupID,
+				LogStreamId: stream.LogStreamId,
+				Body:        body,
+			})
+			if callErr != nil {
+				return callErr
+			}
+			analysis = resp.AnalysisLogs
+			return nil
+		}
+		var err error
+		// 应用日志是几十上百条流的扇出(8 并发),必须与 searchApp 一样经过 LTS 闸门
+		// (APIGW.0308,10 QPS/用户)与限流重试,否则必然 429、失败流被静默丢弃。
+		// WAF/ELB 只有 ~2 条流,维持既有直接调用(不动既有行为)。
+		if kind == kindApp {
+			err = p.withLTSRetry(ctx, "aggregate/"+groupID, call)
+		} else {
+			err = call()
+		}
 		if err != nil {
 			return nil, fmt.Errorf("lts aggregate sql %s: %w", stream.LogStreamName, err)
 		}
-		if resp.AnalysisLogs == nil {
+		if analysis == nil {
 			return nil, nil
 		}
-		rows := make([]map[string]any, 0, len(*resp.AnalysisLogs))
-		for _, raw := range *resp.AnalysisLogs {
+		rows := make([]map[string]any, 0, len(*analysis))
+		for _, raw := range *analysis {
 			if m, ok := raw.(map[string]any); ok {
 				rows = append(rows, m)
 			}
@@ -549,9 +633,7 @@ func (p *provider) aggregateStream(groupID string, kind mapperKind, stream ltsmo
 
 	bucketRows, err := runSQL(buildAggregateBucketSQL(filterPart, params.BucketSec), 200)
 	if err != nil {
-		p.logger.Warn("[logquery-huawei] aggregate bucket sql failed",
-			elog.String("stream", stream.LogStreamName), elog.FieldErr(err))
-		return result
+		return nil, err
 	}
 	for _, row := range bucketRows {
 		ms, ok := jsonInt64(row["t"])
@@ -568,23 +650,22 @@ func (p *provider) aggregateStream(groupID string, kind mapperKind, stream ltsmo
 		expr, ok := dimensionExpr(kind, params.Dimension)
 		if !ok {
 			result.TopNSkipReason = "维度 " + params.Dimension + " 该源不支持"
-			return result
+			return result, nil
 		}
 		dim = expr
 	}
 	if dim == "" {
-		return result // 无维度流(WAF 攻击/访问流)跳过 TopN
+		return result, nil // 无维度流(WAF 攻击/访问流/app 文本流)跳过 TopN
 	}
 	if _, ok := metricSQLExpr(kind, params.Metric); !ok {
 		result.TopNSkipReason = "指标 " + params.Metric + " 该源不支持"
-		return result
+		return result, nil
 	}
 	// 指标仅 count(LTS 未验证 avg/分位):v 恒等于 n(见 buildAggregateTopNSQL)
 	topnRows, err := runSQL(buildAggregateTopNSQL(filterPart, dim, 10), 10)
 	if err != nil {
-		p.logger.Warn("[logquery-huawei] aggregate topn sql failed",
-			elog.String("stream", stream.LogStreamName), elog.FieldErr(err))
-		return result
+		// 分桶已成功:返回部分结果 + 错误(调用方决定是否曝错)
+		return result, err
 	}
 	for _, row := range topnRows {
 		k, ok := row["k"].(string)
@@ -594,7 +675,7 @@ func (p *provider) aggregateStream(groupID string, kind mapperKind, stream ltsmo
 		}
 		result.TopN = append(result.TopN, logquery.TopNItem{Name: k, Count: c, Value: float64(c)})
 	}
-	return result
+	return result, nil
 }
 
 // jsonInt64 analysisLogs 行值容错取数。华为 SDK 对动态字段用 json.Number

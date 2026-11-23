@@ -1,0 +1,14 @@
+{"lv":"warn","ts":1795421418,"msg":"[logquery-huawei] lts throttled, retrying","call":"aggregate/g-app-payment","attempt":1,"error":"fake lts: throttled (APIGW.0308) for app-payment-business"}
+{"lv":"warn","ts":1795421419,"msg":"[logquery-huawei] lts throttled, retrying","call":"aggregate/g-app-payment","attempt":2,"error":"fake lts: throttled (APIGW.0308) for app-payment-business"}
+{"lv":"warn","ts":1795421419,"msg":"[logquery-huawei] lts throttled, retrying","call":"aggregate/g-app-payment","attempt":3,"error":"fake lts: throttled (APIGW.0308) for app-payment-business"}
+{"lv":"warn","ts":1795421420,"msg":"[logquery-huawei] aggregate stream failed","group":"app-payment","stream":"app-payment-business","error":"lts aggregate sql app-payment-business: fake lts: throttled (APIGW.0308) for app-payment-business"}
+{"lv":"warn","ts":1795421421,"msg":"[logquery-huawei] aggregate stream failed","group":"hwyun-waf-logs","stream":"hwyun-waf-logs-attack","error":"lts aggregate sql hwyun-waf-logs-attack: fake lts: throttled (APIGW.0308) for hwyun-waf-logs-attack"}
+{"lv":"warn","ts":1795421421,"msg":"[logquery-huawei] lts throttled, retrying","call":"list_streams/app-payment","attempt":1,"error":"fake lts: list streams throttled (APIGW.0308) for app-payment"}
+{"lv":"warn","ts":1795421421,"msg":"[logquery-huawei] lts throttled, retrying","call":"list_streams/app-payment","attempt":2,"error":"fake lts: list streams throttled (APIGW.0308) for app-payment"}
+{"lv":"warn","ts":1795421469,"msg":"[logquery-huawei] lts throttled, retrying","call":"aggregate/g-app-payment","attempt":1,"error":"fake lts: throttled (APIGW.0308) for app-payment-business"}
+{"lv":"warn","ts":1795421469,"msg":"[logquery-huawei] lts throttled, retrying","call":"aggregate/g-app-payment","attempt":2,"error":"fake lts: throttled (APIGW.0308) for app-payment-business"}
+{"lv":"warn","ts":1795421470,"msg":"[logquery-huawei] lts throttled, retrying","call":"aggregate/g-app-payment","attempt":3,"error":"fake lts: throttled (APIGW.0308) for app-payment-business"}
+{"lv":"warn","ts":1795421471,"msg":"[logquery-huawei] aggregate stream failed","group":"app-payment","stream":"app-payment-business","error":"lts aggregate sql app-payment-business: fake lts: throttled (APIGW.0308) for app-payment-business"}
+{"lv":"warn","ts":1795421471,"msg":"[logquery-huawei] aggregate stream failed","group":"hwyun-waf-logs","stream":"hwyun-waf-logs-attack","error":"lts aggregate sql hwyun-waf-logs-attack: fake lts: throttled (APIGW.0308) for hwyun-waf-logs-attack"}
+{"lv":"warn","ts":1795421471,"msg":"[logquery-huawei] lts throttled, retrying","call":"list_streams/app-payment","attempt":1,"error":"fake lts: list streams throttled (APIGW.0308) for app-payment"}
+{"lv":"warn","ts":1795421472,"msg":"[logquery-huawei] lts throttled, retrying","call":"list_streams/app-payment","attempt":2,"error":"fake lts: list streams throttled (APIGW.0308) for app-payment"}

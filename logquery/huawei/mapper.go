@@ -23,6 +23,7 @@ const (
 	kindWAFAttack mapperKind = "waf_attack" // WAF 攻击日志(content JSON)
 	kindWAFAccess mapperKind = "waf_access" // WAF 访问日志(content JSON)
 	kindELB       mapperKind = "elb"        // ELB 访问日志(content 空格分隔文本)
+	kindApp       mapperKind = "app"        // 应用业务日志(纯文本;聚合仅 count 分桶)
 )
 
 // groupClass 日志组的形态归类(WAF 组 / ELB 组)。

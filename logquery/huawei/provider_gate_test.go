@@ -22,18 +22,26 @@ func TestWafElbListStreamsGoThroughGate(t *testing.T) {
 		t.Error("provider.go 仍存在裸调 p.lts().ListLogStreams{LogGroupName: &src.group};" +
 			" WAF/ELB 路径必须经 listGroupStreams 走 LTS 限流闸门")
 	}
-	if got := strings.Count(src, "p.listGroupStreams(ctx, src.group)"); got != 3 {
-		t.Errorf("listGroupStreams 调用点 = %d, want 3(listSourcesUncached/Search/Aggregate)", got)
+	// 三个枚举点都必须经闸门：listSourcesUncached / Search 走 listGroupStreams，
+	// Aggregate 走同闸门的 listGroupStreamsWith（要注入调用方的 api，见其注释）。
+	gated := strings.Count(src, "p.listGroupStreams(ctx, src.group)") +
+		strings.Count(src, "p.listGroupStreamsWith(ctx, api, src.group)")
+	if gated != 3 {
+		t.Errorf("经闸门的组流枚举调用点 = %d, want 3(listSourcesUncached/Search/Aggregate)", gated)
 	}
-	idx := strings.Index(src, "func (p *provider) listGroupStreams(")
+	idx := strings.Index(src, "func (p *provider) listGroupStreamsWith(")
 	if idx < 0 {
-		t.Fatal("provider.go 缺少 listGroupStreams")
+		t.Fatal("provider.go 缺少 listGroupStreamsWith")
 	}
 	body := src[idx:]
 	if end := strings.Index(body[1:], "\nfunc "); end > 0 {
 		body = body[:end+1]
 	}
 	if !strings.Contains(body, "p.withLTSRetry(ctx,") {
-		t.Error("listGroupStreams 未走 withLTSRetry,限流重试失效")
+		t.Error("listGroupStreamsWith 未走 withLTSRetry,限流重试失效")
+	}
+	// 外层函数必须委托给注入版，否则两条路径的闸门语义会分叉。
+	if !strings.Contains(src, "return p.listGroupStreamsWith(ctx, p.lts(), group)") {
+		t.Error("listGroupStreams 未委托给 listGroupStreamsWith")
 	}
 }
