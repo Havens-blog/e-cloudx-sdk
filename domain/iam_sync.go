@@ -42,18 +42,21 @@ type SyncTask struct {
 	TargetType     SyncTargetType `json:"target_type" bson:"target_type"`
 	TargetID       int64          `json:"target_id" bson:"target_id"`
 	CloudAccountID int64          `json:"cloud_account_id" bson:"cloud_account_id"`
-	Provider       CloudProvider  `json:"provider" bson:"provider"`
-	Status         SyncTaskStatus `json:"status" bson:"status"`
-	Progress       int            `json:"progress" bson:"progress"`
-	RetryCount     int            `json:"retry_count" bson:"retry_count"`
-	MaxRetries     int            `json:"max_retries" bson:"max_retries"`
-	ErrorMessage   string         `json:"error_message" bson:"error_message"`
-	StartTime      *time.Time     `json:"start_time" bson:"start_time"`
-	EndTime        *time.Time     `json:"end_time" bson:"end_time"`
-	CreateTime     time.Time      `json:"create_time" bson:"create_time"`
-	UpdateTime     time.Time      `json:"update_time" bson:"update_time"`
-	CTime          int64          `json:"ctime" bson:"ctime"`
-	UTime          int64          `json:"utime" bson:"utime"`
+	// CloudAccountName 云账号名：**派生字段**，由服务层按 CloudAccountID 回填，
+	// 不落库（bson:"-"）。前端列表/详情直接展示它，缺失时该列只能显示空白。
+	CloudAccountName string         `json:"cloud_account_name" bson:"-"`
+	Provider         CloudProvider  `json:"provider" bson:"provider"`
+	Status           SyncTaskStatus `json:"status" bson:"status"`
+	Progress         int            `json:"progress" bson:"progress"`
+	RetryCount       int            `json:"retry_count" bson:"retry_count"`
+	MaxRetries       int            `json:"max_retries" bson:"max_retries"`
+	ErrorMessage     string         `json:"error_message" bson:"error_message"`
+	StartTime        *time.Time     `json:"start_time" bson:"start_time"`
+	EndTime          *time.Time     `json:"end_time" bson:"end_time"`
+	CreateTime       time.Time      `json:"create_time" bson:"create_time"`
+	UpdateTime       time.Time      `json:"update_time" bson:"update_time"`
+	CTime            int64          `json:"ctime" bson:"ctime"`
+	UTime            int64          `json:"utime" bson:"utime"`
 }
 
 // SyncTaskFilter 同步任务查询过滤器
