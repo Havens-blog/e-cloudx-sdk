@@ -1,9 +1,12 @@
-package aliyun
+﻿package aliyun
 
 import (
 	"context"
 	"errors"
+	"fmt"
+	"sync"
 	"testing"
+	"time"
 
 	"github.com/Havens-blog/e-cloudx-sdk/domain"
 	cloudxiam "github.com/Havens-blog/e-cloudx-sdk/iam"
@@ -18,7 +21,9 @@ type fakeRAMClient struct {
 	// listUserPages 按调用顺序返回，每页一个响应。
 	listUserPages []*ram.ListUsersResponse
 	listUsersErr  error
-	listUsersCall int
+	// listUsersErrOnCall > 0 时，仅第 N 次 ListUsers 调用返回失败，用于验证分页中途失败。
+	listUsersErrOnCall int
+	listUsersCall      int
 
 	getUserResp  *ram.GetUserResponse
 	getUserErr   error
@@ -35,6 +40,9 @@ func (f *fakeRAMClient) ListUsers(_ *ram.ListUsersRequest) (*ram.ListUsersRespon
 	f.listUsersCall++
 	if f.listUsersErr != nil {
 		return nil, f.listUsersErr
+	}
+	if f.listUsersErrOnCall > 0 && f.listUsersCall == f.listUsersErrOnCall {
+		return nil, sdkerrors.NewServerError(500, `{"Code":"InternalError","Message":"boom"}`, "")
 	}
 	if len(f.listUserPages) == 0 {
 		return &ram.ListUsersResponse{}, nil
@@ -265,6 +273,116 @@ func TestLoadUserNamesOnlyOnce(t *testing.T) {
 	}
 	if client.listUsersCall != 1 {
 		t.Errorf("用户列表只应拉取一次, got %d", client.listUsersCall)
+	}
+}
+
+// blockingRAMClient 在首次 ListUsers 处阻塞，直到测试放行，用于验证加载期间不持锁。
+type blockingRAMClient struct {
+	fakeRAMClient
+	started chan struct{}
+	release chan struct{}
+	once    sync.Once
+}
+
+func (b *blockingRAMClient) ListUsers(request *ram.ListUsersRequest) (*ram.ListUsersResponse, error) {
+	b.once.Do(func() { close(b.started) })
+	<-b.release
+	return b.fakeRAMClient.ListUsers(request)
+}
+
+// TestIsRAMUserGoneErrorUsesStructuredCode 确认「用户已删除」只由结构化错误码判定。
+func TestIsRAMUserGoneErrorUsesStructuredCode(t *testing.T) {
+	cases := []struct {
+		name string
+		err  error
+		want bool
+	}{
+		{"nil", nil, false},
+		{"结构化错误码命中", sdkerrors.NewServerError(404, `{"Code":"EntityNotExist.User","Message":"nope"}`, ""), true},
+		{"包装后仍可识别", fmt.Errorf("failed to get RAM user: %w", sdkerrors.NewServerError(404, `{"Code":"EntityNotExist.User"}`, "")), true},
+		{"文本含命中串但错误码不同", sdkerrors.NewServerError(400, `{"Code":"InvalidParameter","Message":"EntityNotExist.User"}`, ""), false},
+		{"非结构化错误的文本命中", errors.New("EntityNotExist.User"), false},
+		{"普通故障", sdkerrors.NewServerError(500, `{"Code":"InternalError","Message":"boom"}`, ""), false},
+	}
+	for _, c := range cases {
+		if got := isRAMUserGoneError(c.err); got != c.want {
+			t.Errorf("%s: isRAMUserGoneError = %v, want %v", c.name, got, c.want)
+		}
+	}
+}
+
+// TestLoadUserNamesKeepsMappingEmptyOnFailure 确认分页中途失败不发布半成品映射、也不标记已就绪。
+func TestLoadUserNamesKeepsMappingEmptyOnFailure(t *testing.T) {
+	client := &fakeRAMClient{
+		listUserPages: []*ram.ListUsersResponse{
+			{IsTruncated: true, Marker: "m2", Users: ram.UsersInListUsers{User: []ram.User{{UserId: "1", UserName: "alice"}}}},
+			{Users: ram.UsersInListUsers{User: []ram.User{{UserId: "2", UserName: "bob"}}}},
+		},
+		listUsersErrOnCall: 2,
+	}
+	adapter := newTestAdapter()
+
+	if _, err := adapter.resolveUserName(context.Background(), client, "1"); err == nil {
+		t.Fatal("第二页失败时必须返回错误")
+	}
+	if _, ok := adapter.cachedUserName("1"); ok {
+		t.Error("失败时不得发布半成品映射")
+	}
+	if adapter.userNamesLoaded() {
+		t.Error("失败时不得标记映射已就绪")
+	}
+
+	// 失败后应可重试：第二页恢复成功则映射完整。
+	client.listUsersErrOnCall = 0
+	if userName, err := adapter.resolveUserName(context.Background(), client, "2"); err != nil || userName != "bob" {
+		t.Fatalf("重试应成功: %q %v", userName, err)
+	}
+}
+
+// TestLoadUserNamesDoesNotHoldLockDuringIO 确认分页网络 IO 期间不持有互斥锁。
+// 旧实现把 namesMu 横跨整个分页循环，另一个 goroutine 只要读 namesLoaded 就会被慢调用卡住。
+func TestLoadUserNamesDoesNotHoldLockDuringIO(t *testing.T) {
+	client := &blockingRAMClient{
+		fakeRAMClient: fakeRAMClient{
+			listUserPages: []*ram.ListUsersResponse{{
+				Users: ram.UsersInListUsers{User: []ram.User{{UserId: "1", UserName: "alice"}}},
+			}},
+		},
+		started: make(chan struct{}),
+		release: make(chan struct{}),
+	}
+	adapter := newTestAdapter()
+
+	done := make(chan error, 1)
+	go func() { done <- adapter.loadUserNames(context.Background(), client) }()
+
+	select {
+	case <-client.started:
+	case <-time.After(2 * time.Second):
+		t.Fatal("加载未开始")
+	}
+
+	// 加载进行中，读标志位必须立刻返回。
+	probe := make(chan bool, 1)
+	go func() { probe <- adapter.userNamesLoaded() }()
+	select {
+	case loaded := <-probe:
+		if loaded {
+			t.Error("加载完成前不应报告已就绪")
+		}
+	case <-time.After(2 * time.Second):
+		t.Fatal("加载期间的读取被互斥锁阻塞（网络 IO 不应持锁）")
+	}
+
+	close(client.release)
+	if err := <-done; err != nil {
+		t.Fatalf("加载失败: %v", err)
+	}
+	if userName, ok := adapter.cachedUserName("1"); !ok || userName != "alice" {
+		t.Fatalf("加载完成后应发布映射: %q %v", userName, ok)
+	}
+	if !adapter.userNamesLoaded() {
+		t.Error("加载完成后应标记已就绪")
 	}
 }
 

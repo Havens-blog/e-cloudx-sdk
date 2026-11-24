@@ -4,8 +4,8 @@ import (
 	cloudxiam "github.com/Havens-blog/e-cloudx-sdk/iam"
 
 	"context"
+	stderrors "errors"
 	"fmt"
-	"strings"
 	"sync"
 
 	aliyuncommon "github.com/Havens-blog/e-cloudx-sdk/common/aliyun"
@@ -13,6 +13,7 @@ import (
 	"github.com/Havens-blog/e-cloudx-sdk/common/retry"
 	cloudxtypes "github.com/Havens-blog/e-cloudx-sdk/types"
 	"github.com/Havens-blog/e-cloudx-sdk/domain"
+	aliyunerrors "github.com/aliyun/alibaba-cloud-sdk-go/sdk/errors"
 	"github.com/aliyun/alibaba-cloud-sdk-go/services/ram"
 	"github.com/gotomicro/ego/core/elog"
 )
@@ -28,6 +29,9 @@ type Adapter struct {
 	userNames   sync.Map
 	namesLoaded bool
 	namesMu     sync.Mutex
+	// loadMu 串行化「全量拉取用户列表」本身；namesMu 只保护 namesLoaded 标志位，
+	// 二者都不在分页网络 IO 期间持有，避免慢调用阻塞其它 goroutine 的读取。
+	loadMu sync.Mutex
 }
 
 // NewAdapter 创建阿里云IAM适配器实例例
@@ -738,14 +742,21 @@ func (a *Adapter) resolveUserName(ctx context.Context, client ramUserClient, use
 }
 
 // loadUserNames 全量拉取一次用户列表以填充 UserId -> UserName 映射（每个适配器实例只做一次）。
+// 分页期间的网络 IO 不持有任何锁：映射先收集到本地变量，全部成功后一次性发布，
+// 既避免「半成品映射」被读到，也避免慢调用阻塞并发读取。
 func (a *Adapter) loadUserNames(ctx context.Context, client ramUserClient) error {
-	a.namesMu.Lock()
-	defer a.namesMu.Unlock()
-
-	if a.namesLoaded {
+	if a.userNamesLoaded() {
 		return nil
 	}
 
+	a.loadMu.Lock()
+	defer a.loadMu.Unlock()
+
+	if a.userNamesLoaded() {
+		return nil
+	}
+
+	names := make(map[string]string)
 	marker := ""
 	for {
 		request := ram.CreateListUsersRequest()
@@ -767,7 +778,7 @@ func (a *Adapter) loadUserNames(ctx context.Context, client ramUserClient) error
 
 		for i := range response.Users.User {
 			user := response.Users.User[i]
-			a.rememberUserName(user.UserId, user.UserName)
+			names[user.UserId] = user.UserName
 		}
 
 		if !response.IsTruncated {
@@ -776,14 +787,36 @@ func (a *Adapter) loadUserNames(ctx context.Context, client ramUserClient) error
 		marker = response.Marker
 	}
 
+	for userID, userName := range names {
+		a.userNames.Store(userID, userName)
+	}
+
+	a.namesMu.Lock()
 	a.namesLoaded = true
+	a.namesMu.Unlock()
 	return nil
 }
 
+// userNamesLoaded 报告 UserId -> UserName 全量映射是否已就绪。
+func (a *Adapter) userNamesLoaded() bool {
+	a.namesMu.Lock()
+	defer a.namesMu.Unlock()
+	return a.namesLoaded
+}
+
+// ramUserGoneErrorCode 是阿里云 RAM 表示「用户不存在」的结构化错误码。
+const ramUserGoneErrorCode = "EntityNotExist.User"
+
 // isRAMUserGoneError 判断错误是否为「云端用户已不存在」（例如 RAM 用户已被删除）。
+// 只认 SDK 的结构化错误码，不对错误文本做子串匹配：文本会随语言/格式变化，
+// 也可能恰好出现在其它错误（如参数回显）里，从而把真实故障误判成「用户已删除」。
 func isRAMUserGoneError(err error) bool {
 	if err == nil {
 		return false
 	}
-	return strings.Contains(err.Error(), "EntityNotExist.User")
+	var serverErr *aliyunerrors.ServerError
+	if !stderrors.As(err, &serverErr) {
+		return false
+	}
+	return serverErr.ErrorCode() == ramUserGoneErrorCode
 }
