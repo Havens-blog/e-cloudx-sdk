@@ -4,13 +4,16 @@ import (
 	cloudxiam "github.com/Havens-blog/e-cloudx-sdk/iam"
 
 	"context"
+	stderrors "errors"
 	"fmt"
+	"sync"
 
 	aliyuncommon "github.com/Havens-blog/e-cloudx-sdk/common/aliyun"
 	"github.com/Havens-blog/e-cloudx-sdk/common/ratelimit"
 	"github.com/Havens-blog/e-cloudx-sdk/common/retry"
 	cloudxtypes "github.com/Havens-blog/e-cloudx-sdk/types"
 	"github.com/Havens-blog/e-cloudx-sdk/domain"
+	aliyunerrors "github.com/aliyun/alibaba-cloud-sdk-go/sdk/errors"
 	"github.com/aliyun/alibaba-cloud-sdk-go/services/ram"
 	"github.com/gotomicro/ego/core/elog"
 )
@@ -19,6 +22,16 @@ import (
 type Adapter struct {
 	logger      *elog.Component
 	rateLimiter *ratelimit.RateLimiter
+
+	// userNames 缓存阿里云数值型 UserId -> UserName。RAM 的 GetUser / ListPoliciesForUser
+	// 只接受 UserName，而 ListUsers 下发的是 UserId，两者之间必须先做一次映射。
+	// 适配器实例由工厂按账号全局缓存，因此映射可跨调用复用。
+	userNames   sync.Map
+	namesLoaded bool
+	namesMu     sync.Mutex
+	// loadMu 串行化「全量拉取用户列表」本身；namesMu 只保护 namesLoaded 标志位，
+	// 二者都不在分页网络 IO 期间持有，避免慢调用阻塞其它 goroutine 的读取。
+	loadMu sync.Mutex
 }
 
 // NewAdapter 创建阿里云IAM适配器实例例
@@ -96,10 +109,11 @@ func (a *Adapter) ListUsers(ctx context.Context, account *domain.CloudAccount) (
 			return nil, fmt.Errorf("failed to list RAM users: %w", err)
 		}
 
-		// 转换器用户组数据
+		// 转换器用户组数据，同时回填 UserId -> UserName 映射
 		for _, ramUser := range response.Users.User {
 			user := ConvertRAMUserToCloudUser(ramUser, account)
 			allUsers = append(allUsers, user)
+			a.rememberUserName(ramUser.UserId, ramUser.UserName)
 		}
 
 		// 检查是否还有更多数�?
@@ -127,9 +141,25 @@ func (a *Adapter) GetUser(ctx context.Context, account *domain.CloudAccount, use
 		return nil, err
 	}
 
+	return a.getUserWith(ctx, client, account, userID)
+}
+
+// getUserWith 是 GetUser 的实现体。入参既可以是 UserName，也可以是 ListUsers 下发的
+// 数值型 UserId：RAM 的 GetUser 只接受 UserName，因此这里先解析一次。
+func (a *Adapter) getUserWith(
+	ctx context.Context,
+	client ramUserClient,
+	account *domain.CloudAccount,
+	userID string,
+) (*domain.CloudUser, error) {
+	userName, err := a.resolveUserName(ctx, client, userID)
+	if err != nil {
+		return nil, err
+	}
+
 	request := ram.CreateGetUserRequest()
 	request.Scheme = "https"
-	request.UserName = userID
+	request.UserName = userName
 
 	var response *ram.GetUserResponse
 	err = a.retryWithBackoff(ctx, func() error {
@@ -139,6 +169,14 @@ func (a *Adapter) GetUser(ctx context.Context, account *domain.CloudAccount, use
 	})
 
 	if err != nil {
+		if isRAMUserGoneError(err) {
+			a.logger.Warn("aliyun ram user no longer exists",
+				elog.String("account_id", fmt.Sprintf("%d", account.ID)),
+				elog.String("user_id", userID),
+				elog.String("user_name", userName),
+				elog.FieldErr(err))
+			return nil, fmt.Errorf("%w: %w", cloudxiam.ErrCloudUserNotFound, err)
+		}
 		a.logger.Error("get aliyun ram user failed",
 			elog.String("account_id", fmt.Sprintf("%d", account.ID)),
 			elog.String("user_id", userID),
@@ -147,11 +185,12 @@ func (a *Adapter) GetUser(ctx context.Context, account *domain.CloudAccount, use
 	}
 
 	user := ConvertRAMUserToCloudUser(response.User, account)
+	a.rememberUserName(response.User.UserId, response.User.UserName)
 
-	// 获取用户组的AccessKey信息
+	// 获取用户的AccessKey信息
 	akRequest := ram.CreateListAccessKeysRequest()
 	akRequest.Scheme = "https"
-	akRequest.UserName = userID
+	akRequest.UserName = userName
 
 	var akResponse *ram.ListAccessKeysResponse
 	err = a.retryWithBackoff(ctx, func() error {
@@ -483,9 +522,25 @@ func (a *Adapter) GetUserPolicies(ctx context.Context, account *domain.CloudAcco
 		return nil, err
 	}
 
+	return a.getUserPoliciesWith(ctx, client, account, userID)
+}
+
+// getUserPoliciesWith 是 GetUserPolicies 的实现体。userID 支持 UserName 或数值型 UserId
+// （会自动解析），因为 RAM 的 ListPoliciesForUser 只接受 UserName。
+func (a *Adapter) getUserPoliciesWith(
+	ctx context.Context,
+	client ramUserClient,
+	account *domain.CloudAccount,
+	userID string,
+) ([]domain.PermissionPolicy, error) {
+	userName, err := a.resolveUserName(ctx, client, userID)
+	if err != nil {
+		return nil, err
+	}
+
 	request := ram.CreateListPoliciesForUserRequest()
 	request.Scheme = "https"
-	request.UserName = userID
+	request.UserName = userName
 
 	var response *ram.ListPoliciesForUserResponse
 	err = a.retryWithBackoff(ctx, func() error {
@@ -495,6 +550,14 @@ func (a *Adapter) GetUserPolicies(ctx context.Context, account *domain.CloudAcco
 	})
 
 	if err != nil {
+		if isRAMUserGoneError(err) {
+			a.logger.Warn("aliyun ram user no longer exists, skip policies",
+				elog.String("account_id", fmt.Sprintf("%d", account.ID)),
+				elog.String("user_id", userID),
+				elog.String("user_name", userName),
+				elog.FieldErr(err))
+			return nil, fmt.Errorf("%w: %w", cloudxiam.ErrCloudUserNotFound, err)
+		}
 		a.logger.Error("get user policies failed",
 			elog.String("account_id", fmt.Sprintf("%d", account.ID)),
 			elog.String("user_id", userID),
@@ -516,6 +579,7 @@ func (a *Adapter) GetUserPolicies(ctx context.Context, account *domain.CloudAcco
 	a.logger.Info("get user policies success",
 		elog.String("account_id", fmt.Sprintf("%d", account.ID)),
 		elog.String("user_id", userID),
+		elog.String("user_name", userName),
 		elog.Int("count", len(policies)))
 
 	return policies, nil
@@ -607,4 +671,152 @@ func init() {
 			return ad.CreateUser(ctx, account, params)
 		}), nil
 	})
+}
+
+// ramUserClient 是用户相关操作需要的最小客户端接口，便于单测注入假客户端
+// （阿里云 SDK 的 *ram.Client 天然满足该接口）。
+type ramUserClient interface {
+	ListUsers(request *ram.ListUsersRequest) (*ram.ListUsersResponse, error)
+	GetUser(request *ram.GetUserRequest) (*ram.GetUserResponse, error)
+	ListAccessKeys(request *ram.ListAccessKeysRequest) (*ram.ListAccessKeysResponse, error)
+	ListPoliciesForUser(request *ram.ListPoliciesForUserRequest) (*ram.ListPoliciesForUserResponse, error)
+}
+
+// rememberUserName 缓存 UserId -> UserName 映射（ListUsers 与 GetUser 都会回填）。
+func (a *Adapter) rememberUserName(userID, userName string) {
+	if userID == "" || userName == "" {
+		return
+	}
+	a.userNames.Store(userID, userName)
+}
+
+func (a *Adapter) cachedUserName(userID string) (string, bool) {
+	value, ok := a.userNames.Load(userID)
+	if !ok {
+		return "", false
+	}
+	userName, ok := value.(string)
+	if !ok || userName == "" {
+		return "", false
+	}
+	return userName, true
+}
+
+// isRAMUserID 判断标识是否为阿里云数值型 UserId（RAM 的 UserName 不会是纯数字）。
+func isRAMUserID(id string) bool {
+	if id == "" {
+		return false
+	}
+	for _, r := range id {
+		if r < '0' || r > '9' {
+			return false
+		}
+	}
+	return true
+}
+
+// resolveUserName 把调用方传入的 userID 解析成 GetUser / ListPoliciesForUser 所需的 UserName。
+func (a *Adapter) resolveUserName(ctx context.Context, client ramUserClient, userID string) (string, error) {
+	if userID == "" {
+		return "", fmt.Errorf("%w: empty user id", cloudxiam.ErrCloudUserNotFound)
+	}
+
+	if userName, ok := a.cachedUserName(userID); ok {
+		return userName, nil
+	}
+
+	// 非纯数字：调用方传入的已经是 UserName。
+	if !isRAMUserID(userID) {
+		return userID, nil
+	}
+
+	if err := a.loadUserNames(ctx, client); err != nil {
+		return "", err
+	}
+
+	if userName, ok := a.cachedUserName(userID); ok {
+		return userName, nil
+	}
+
+	return "", fmt.Errorf("%w: user id %s", cloudxiam.ErrCloudUserNotFound, userID)
+}
+
+// loadUserNames 全量拉取一次用户列表以填充 UserId -> UserName 映射（每个适配器实例只做一次）。
+// 分页期间的网络 IO 不持有任何锁：映射先收集到本地变量，全部成功后一次性发布，
+// 既避免「半成品映射」被读到，也避免慢调用阻塞并发读取。
+func (a *Adapter) loadUserNames(ctx context.Context, client ramUserClient) error {
+	if a.userNamesLoaded() {
+		return nil
+	}
+
+	a.loadMu.Lock()
+	defer a.loadMu.Unlock()
+
+	if a.userNamesLoaded() {
+		return nil
+	}
+
+	names := make(map[string]string)
+	marker := ""
+	for {
+		request := ram.CreateListUsersRequest()
+		request.Scheme = "https"
+		request.MaxItems = "100"
+		if marker != "" {
+			request.Marker = marker
+		}
+
+		var response *ram.ListUsersResponse
+		err := a.retryWithBackoff(ctx, func() error {
+			var e error
+			response, e = client.ListUsers(request)
+			return e
+		})
+		if err != nil {
+			return fmt.Errorf("failed to load RAM users for name mapping: %w", err)
+		}
+
+		for i := range response.Users.User {
+			user := response.Users.User[i]
+			names[user.UserId] = user.UserName
+		}
+
+		if !response.IsTruncated {
+			break
+		}
+		marker = response.Marker
+	}
+
+	for userID, userName := range names {
+		a.userNames.Store(userID, userName)
+	}
+
+	a.namesMu.Lock()
+	a.namesLoaded = true
+	a.namesMu.Unlock()
+	return nil
+}
+
+// userNamesLoaded 报告 UserId -> UserName 全量映射是否已就绪。
+func (a *Adapter) userNamesLoaded() bool {
+	a.namesMu.Lock()
+	defer a.namesMu.Unlock()
+	return a.namesLoaded
+}
+
+// ramUserGoneErrorCode 是阿里云 RAM 表示「用户不存在」的结构化错误码。
+const ramUserGoneErrorCode = "EntityNotExist.User"
+
+// isRAMUserGoneError 判断错误是否为「云端用户已不存在」（例如 RAM 用户已被删除）。
+// 只认 SDK 的结构化错误码，不对错误文本做子串匹配：文本会随语言/格式变化，
+// 也可能恰好出现在其它错误（如参数回显）里，从而把真实故障误判成「用户已删除」。
+func isRAMUserGoneError(err error) bool {
+	if err == nil {
+		return false
+	}
+	var serverErr *aliyunerrors.ServerError
+	if !stderrors.As(err, &serverErr) {
+		return false
+	}
+	return serverErr.ErrorCode() == ramUserGoneErrorCode
 }
