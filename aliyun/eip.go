@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"strconv"
 
+	aliyunhttps "github.com/Havens-blog/e-cloudx-sdk/common/aliyunhttps"
 	"github.com/Havens-blog/e-cloudx-sdk/types"
 	"github.com/aliyun/alibaba-cloud-sdk-go/sdk/requests"
 	vpc "github.com/aliyun/alibaba-cloud-sdk-go/services/vpc"
@@ -34,7 +35,12 @@ func (a *EIPAdapter) createClient(region string) (*vpc.Client, error) {
 	if region == "" {
 		region = a.defaultRegion
 	}
-	return vpc.NewClientWithAccessKey(region, a.accessKeyID, a.accessKeySecret)
+	client, err := vpc.NewClientWithAccessKey(region, a.accessKeyID, a.accessKeySecret)
+	if err != nil {
+		return nil, err
+	}
+	aliyunhttps.Force(client.GetConfig())
+	return client, nil
 }
 
 // ListInstances 获取EIP列表

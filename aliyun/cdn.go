@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"strconv"
 
+	aliyunhttps "github.com/Havens-blog/e-cloudx-sdk/common/aliyunhttps"
 	"github.com/Havens-blog/e-cloudx-sdk/types"
 	"github.com/aliyun/alibaba-cloud-sdk-go/sdk"
 	"github.com/aliyun/alibaba-cloud-sdk-go/sdk/requests"
@@ -33,7 +34,12 @@ func NewCDNAdapter(accessKeyID, accessKeySecret, defaultRegion string, logger *e
 
 // createClient 创建CDN客户端
 func (a *CDNAdapter) createClient() (*cdn.Client, error) {
-	return cdn.NewClientWithAccessKey(a.defaultRegion, a.accessKeyID, a.accessKeySecret)
+	client, err := cdn.NewClientWithAccessKey(a.defaultRegion, a.accessKeyID, a.accessKeySecret)
+	if err != nil {
+		return nil, err
+	}
+	aliyunhttps.Force(client.GetConfig())
+	return client, nil
 }
 
 // ListInstances 获取CDN加速域名列表
@@ -339,6 +345,7 @@ func (a *CDNAdapter) listDCDNInstances(filter *types.CDNInstanceFilter) ([]types
 	if err != nil {
 		return nil, fmt.Errorf("创建DCDN客户端失败: %w", err)
 	}
+	aliyunhttps.Force(client.GetConfig())
 
 	var allInstances []types.CDNInstance
 	pageNumber := 1

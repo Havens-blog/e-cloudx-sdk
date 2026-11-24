@@ -8,6 +8,7 @@ import (
 	"strings"
 	"time"
 
+	aliyunhttps "github.com/Havens-blog/e-cloudx-sdk/common/aliyunhttps"
 	"github.com/Havens-blog/e-cloudx-sdk/types"
 	"github.com/aliyun/alibaba-cloud-sdk-go/sdk/requests"
 	bgp "github.com/aliyun/alibaba-cloud-sdk-go/services/ddosbgp"
@@ -79,7 +80,12 @@ func (a *DDOSAdapter) createDDoSBGPClient(region string) (*bgp.Client, error) {
 	if region == "" {
 		region = a.defaultRegion
 	}
-	return bgp.NewClientWithAccessKey(region, a.accessKeyID, a.accessKeySecret)
+	client, err := bgp.NewClientWithAccessKey(region, a.accessKeyID, a.accessKeySecret)
+	if err != nil {
+		return nil, err
+	}
+	aliyunhttps.Force(client.GetConfig())
+	return client, nil
 }
 
 // createDDoSCooClient 创建 DDoS 高防(ddoscoo)客户端。
@@ -87,7 +93,12 @@ func (a *DDOSAdapter) createDDoSCooClient(region string) (*coo.Client, error) {
 	if region == "" {
 		region = a.defaultRegion
 	}
-	return coo.NewClientWithAccessKey(region, a.accessKeyID, a.accessKeySecret)
+	client, err := coo.NewClientWithAccessKey(region, a.accessKeyID, a.accessKeySecret)
+	if err != nil {
+		return nil, err
+	}
+	aliyunhttps.Force(client.GetConfig())
+	return client, nil
 }
 
 // ListInstances 获取 DDoS 防护实例列表(两条产品线合并)。

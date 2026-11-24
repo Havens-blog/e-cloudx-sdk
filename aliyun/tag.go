@@ -10,6 +10,8 @@ import (
 	"github.com/aliyun/alibaba-cloud-sdk-go/sdk/requests"
 	"github.com/aliyun/alibaba-cloud-sdk-go/services/ecs"
 	"github.com/gotomicro/ego/core/elog"
+
+	aliyunhttps "github.com/Havens-blog/e-cloudx-sdk/common/aliyunhttps"
 )
 
 const (
@@ -45,7 +47,12 @@ func (a *TagAdapterImpl) resolveRegion(region string) string {
 
 // createClient 创建 ECS 客户端（阿里云标签 API 通过 ECS API 暴露）
 func (a *TagAdapterImpl) createClient(region string) (*ecs.Client, error) {
-	return ecs.NewClientWithAccessKey(a.resolveRegion(region), a.accessKeyID, a.accessKeySecret)
+	client, err := ecs.NewClientWithAccessKey(a.resolveRegion(region), a.accessKeyID, a.accessKeySecret)
+	if err != nil {
+		return nil, err
+	}
+	aliyunhttps.Force(client.GetConfig())
+	return client, nil
 }
 
 // retryWithBackoff 指数退避重试

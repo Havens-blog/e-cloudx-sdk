@@ -6,6 +6,7 @@ import (
 	"strings"
 	"time"
 
+	aliyunhttps "github.com/Havens-blog/e-cloudx-sdk/common/aliyunhttps"
 	"github.com/Havens-blog/e-cloudx-sdk/domain"
 	"github.com/aliyun/alibaba-cloud-sdk-go/services/ecs"
 )
@@ -72,6 +73,7 @@ func (v *AliyunValidator) GetSupportedRegions(ctx context.Context, account *doma
 	if err != nil {
 		return regionsList, fmt.Errorf("创建阿里云客户端失败败: %w", err)
 	}
+	aliyunhttps.Force(client.GetConfig())
 
 	request := ecs.CreateDescribeRegionsRequest()
 	request.Scheme = "https"
@@ -128,6 +130,7 @@ func (v *AliyunValidator) callAliyunAPI(ctx context.Context, account *domain.Clo
 	if err != nil {
 		return fmt.Errorf("创建阿里云客户端失败败: %w", err)
 	}
+	aliyunhttps.Force(client.GetConfig())
 
 	request := ecs.CreateDescribeRegionsRequest()
 	request.Scheme = "https"

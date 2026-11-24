@@ -7,6 +7,7 @@ import (
 	"strconv"
 	"time"
 
+	aliyunhttps "github.com/Havens-blog/e-cloudx-sdk/common/aliyunhttps"
 	"github.com/Havens-blog/e-cloudx-sdk/types"
 	"github.com/aliyun/alibaba-cloud-sdk-go/sdk/requests"
 	"github.com/aliyun/alibaba-cloud-sdk-go/services/alidns"
@@ -38,7 +39,12 @@ func NewDNSAdapter(accessKeyID, accessKeySecret, defaultRegion string, logger *e
 
 // createClient 创建 Alidns 客户端
 func (a *DNSAdapter) createClient() (*alidns.Client, error) {
-	return alidns.NewClientWithAccessKey(a.defaultRegion, a.accessKeyID, a.accessKeySecret)
+	client, err := alidns.NewClientWithAccessKey(a.defaultRegion, a.accessKeyID, a.accessKeySecret)
+	if err != nil {
+		return nil, err
+	}
+	aliyunhttps.Force(client.GetConfig())
+	return client, nil
 }
 
 // retryWithBackoff 指数退避重试

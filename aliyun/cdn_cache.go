@@ -7,6 +7,7 @@ import (
 	"strconv"
 	"strings"
 
+	aliyunhttps "github.com/Havens-blog/e-cloudx-sdk/common/aliyunhttps"
 	"github.com/Havens-blog/e-cloudx-sdk/types"
 	"github.com/aliyun/alibaba-cloud-sdk-go/sdk"
 	"github.com/aliyun/alibaba-cloud-sdk-go/sdk/requests"
@@ -170,6 +171,7 @@ func (a *CDNAdapter) getDCDNCacheConfig(domainName string) ([]types.CDNCacheRule
 	if err != nil {
 		return nil, err
 	}
+	aliyunhttps.Force(client.GetConfig())
 
 	request := requests.NewCommonRequest()
 	request.Method = "POST"
