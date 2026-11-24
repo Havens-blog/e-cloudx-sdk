@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"strconv"
 
+	aliyunhttps "github.com/Havens-blog/e-cloudx-sdk/common/aliyunhttps"
 	"github.com/Havens-blog/e-cloudx-sdk/domain"
 	"github.com/aliyun/alibaba-cloud-sdk-go/sdk"
 	"github.com/aliyun/alibaba-cloud-sdk-go/sdk/requests"
@@ -52,7 +53,12 @@ func (w *wafRPCInvoker) call(action string, params map[string]string) (json.RawM
 
 // newWafSDKClient 构建 WAF 3.0 基础 SDK 客户端
 func newWafSDKClient(region, accessKeyID, accessKeySecret string) (*sdk.Client, error) {
-	return sdk.NewClientWithAccessKey(region, accessKeyID, accessKeySecret)
+	client, err := sdk.NewClientWithAccessKey(region, accessKeyID, accessKeySecret)
+	if err != nil {
+		return nil, err
+	}
+	aliyunhttps.Force(client.GetConfig())
+	return client, nil
 }
 
 // wafCertEndpoint WAF 3.0 API 端点（中国站 cn-hangzhou，国际站 ap-southeast-1）

@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"strconv"
 
+	aliyunhttps "github.com/Havens-blog/e-cloudx-sdk/common/aliyunhttps"
 	"github.com/Havens-blog/e-cloudx-sdk/types"
 	"github.com/aliyun/alibaba-cloud-sdk-go/sdk/requests"
 	"github.com/aliyun/alibaba-cloud-sdk-go/services/rds"
@@ -35,6 +36,7 @@ func (a *RDSAdapter) getClient(region string) (*rds.Client, error) {
 	if err != nil {
 		return nil, fmt.Errorf("创建阿里云RDS客户端失败: %w", err)
 	}
+	aliyunhttps.Force(client.GetConfig())
 	return client, nil
 }
 

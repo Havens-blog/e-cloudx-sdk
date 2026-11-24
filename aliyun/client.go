@@ -6,6 +6,7 @@ import (
 	"sync"
 	"time"
 
+	aliyunhttps "github.com/Havens-blog/e-cloudx-sdk/common/aliyunhttps"
 	"github.com/Havens-blog/e-cloudx-sdk/common/retry"
 	"github.com/Havens-blog/e-cloudx-sdk/domain"
 	"github.com/aliyun/alibaba-cloud-sdk-go/sdk"
@@ -95,6 +96,7 @@ func (c *Client) GetRAMClient() (*ram.Client, error) {
 	if err != nil {
 		return nil, fmt.Errorf("创建RAM客户端失败: %w", err)
 	}
+	aliyunhttps.Force(client.GetConfig())
 
 	c.ramClient = client
 	return client, nil
@@ -114,6 +116,7 @@ func CreateRAMClientFromAccount(account *domain.CloudAccount) (*ram.Client, erro
 	if err != nil {
 		return nil, fmt.Errorf("failed to create RAM client: %w", err)
 	}
+	aliyunhttps.Force(client.GetConfig())
 
 	return client, nil
 }

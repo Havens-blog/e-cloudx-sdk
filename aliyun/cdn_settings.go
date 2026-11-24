@@ -9,6 +9,7 @@ import (
 	"fmt"
 	"strings"
 
+	aliyunhttps "github.com/Havens-blog/e-cloudx-sdk/common/aliyunhttps"
 	"github.com/Havens-blog/e-cloudx-sdk/types"
 	"github.com/aliyun/alibaba-cloud-sdk-go/sdk"
 	"github.com/aliyun/alibaba-cloud-sdk-go/sdk/requests"
@@ -112,6 +113,7 @@ func (a *CDNAdapter) describeDomainConfigs(domainName string) (json.RawMessage, 
 	if err != nil {
 		return nil, "", err
 	}
+	aliyunhttps.Force(common.GetConfig())
 	request := requests.NewCommonRequest()
 	request.Method = "POST"
 	request.Scheme = "https"

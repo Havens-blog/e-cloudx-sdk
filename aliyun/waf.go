@@ -7,6 +7,7 @@ import (
 	"strconv"
 	"time"
 
+	aliyunhttps "github.com/Havens-blog/e-cloudx-sdk/common/aliyunhttps"
 	"github.com/Havens-blog/e-cloudx-sdk/types"
 	"github.com/aliyun/alibaba-cloud-sdk-go/sdk"
 	"github.com/aliyun/alibaba-cloud-sdk-go/sdk/requests"
@@ -38,7 +39,12 @@ func (a *WAFAdapter) createClient(region string) (*sdk.Client, error) {
 	if region == "" {
 		region = a.defaultRegion
 	}
-	return sdk.NewClientWithAccessKey(region, a.accessKeyID, a.accessKeySecret)
+	client, err := sdk.NewClientWithAccessKey(region, a.accessKeyID, a.accessKeySecret)
+	if err != nil {
+		return nil, err
+	}
+	aliyunhttps.Force(client.GetConfig())
+	return client, nil
 }
 
 // wafEndpoint 根据地域返回 WAF 3.0 API 端点。

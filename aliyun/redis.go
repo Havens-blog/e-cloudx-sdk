@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 
+	aliyunhttps "github.com/Havens-blog/e-cloudx-sdk/common/aliyunhttps"
 	"github.com/Havens-blog/e-cloudx-sdk/types"
 	"github.com/aliyun/alibaba-cloud-sdk-go/sdk/requests"
 	r_kvstore "github.com/aliyun/alibaba-cloud-sdk-go/services/r-kvstore"
@@ -34,6 +35,7 @@ func (a *RedisAdapter) getClient(region string) (*r_kvstore.Client, error) {
 	if err != nil {
 		return nil, fmt.Errorf("创建阿里云Redis客户端失败: %w", err)
 	}
+	aliyunhttps.Force(client.GetConfig())
 	return client, nil
 }
 

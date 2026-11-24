@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 
+	aliyunhttps "github.com/Havens-blog/e-cloudx-sdk/common/aliyunhttps"
 	"github.com/Havens-blog/e-cloudx-sdk/types"
 	"github.com/aliyun/alibaba-cloud-sdk-go/sdk/requests"
 	"github.com/aliyun/alibaba-cloud-sdk-go/services/ecs"
@@ -33,7 +34,12 @@ func (a *ENIAdapter) createClient(region string) (*ecs.Client, error) {
 	if region == "" {
 		region = a.defaultRegion
 	}
-	return ecs.NewClientWithAccessKey(region, a.accessKeyID, a.accessKeySecret)
+	client, err := ecs.NewClientWithAccessKey(region, a.accessKeyID, a.accessKeySecret)
+	if err != nil {
+		return nil, err
+	}
+	aliyunhttps.Force(client.GetConfig())
+	return client, nil
 }
 
 // ListInstances 获取弹性网卡列表

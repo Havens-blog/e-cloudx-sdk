@@ -3,6 +3,7 @@
 import (
 	"fmt"
 
+	aliyunhttps "github.com/Havens-blog/e-cloudx-sdk/common/aliyunhttps"
 	"github.com/Havens-blog/e-cloudx-sdk/domain"
 	"github.com/aliyun/alibaba-cloud-sdk-go/sdk/requests"
 	"github.com/aliyun/alibaba-cloud-sdk-go/services/resourcemanager"
@@ -32,6 +33,7 @@ func ListResourceGroupNames(account *domain.CloudAccount) (map[string]string, er
 	if err != nil {
 		return nil, fmt.Errorf("创建资源管理器客户端失败: %w", err)
 	}
+	aliyunhttps.Force(client.GetConfig())
 
 	result := make(map[string]string)
 	request := resourcemanager.CreateListResourceGroupsRequest()

@@ -13,6 +13,7 @@ import (
 	"time"
 
 	"github.com/Havens-blog/e-cloudx-sdk"
+	aliyunhttps "github.com/Havens-blog/e-cloudx-sdk/common/aliyunhttps"
 	"github.com/Havens-blog/e-cloudx-sdk/domain"
 	sdkerrors "github.com/aliyun/alibaba-cloud-sdk-go/sdk/errors"
 	"github.com/aliyun/alibaba-cloud-sdk-go/sdk/requests"
@@ -159,6 +160,7 @@ func NewCertAdapter(logger *elog.Component) *CertAdapter {
 			if err != nil {
 				return nil, fmt.Errorf("创建CAS客户端失败: %w", err)
 			}
+			aliyunhttps.Force(client.GetConfig())
 			return client, nil
 		},
 		newCdnClient: func(creds *domain.CloudAccount) (cdnCertAPI, error) {
@@ -166,6 +168,7 @@ func NewCertAdapter(logger *elog.Component) *CertAdapter {
 			if err != nil {
 				return nil, fmt.Errorf("创建CDN客户端失败: %w", err)
 			}
+			aliyunhttps.Force(client.GetConfig())
 			return client, nil
 		},
 		newDcdnClient: func(creds *domain.CloudAccount) (dcdnCertAPI, error) {
@@ -173,6 +176,7 @@ func NewCertAdapter(logger *elog.Component) *CertAdapter {
 			if err != nil {
 				return nil, fmt.Errorf("创建DCDN客户端失败: %w", err)
 			}
+			aliyunhttps.Force(client.GetConfig())
 			return client, nil
 		},
 		newAlbClient: func(creds *domain.CloudAccount, region string) (albCertAPI, error) {
@@ -180,6 +184,7 @@ func NewCertAdapter(logger *elog.Component) *CertAdapter {
 			if err != nil {
 				return nil, fmt.Errorf("创建ALB客户端失败: %w", err)
 			}
+			aliyunhttps.Force(client.GetConfig())
 			return client, nil
 		},
 		newNlbClient: func(creds *domain.CloudAccount, region string) (nlbCertAPI, error) {
@@ -187,6 +192,7 @@ func NewCertAdapter(logger *elog.Component) *CertAdapter {
 			if err != nil {
 				return nil, fmt.Errorf("创建NLB客户端失败: %w", err)
 			}
+			aliyunhttps.Force(client.GetConfig())
 			return client, nil
 		},
 		newWafCaller: func(creds *domain.CloudAccount, region string) (wafCertCaller, error) {

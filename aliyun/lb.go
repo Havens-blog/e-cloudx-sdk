@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"strconv"
 
+	aliyunhttps "github.com/Havens-blog/e-cloudx-sdk/common/aliyunhttps"
 	"github.com/Havens-blog/e-cloudx-sdk/types"
 	"github.com/aliyun/alibaba-cloud-sdk-go/sdk"
 	"github.com/aliyun/alibaba-cloud-sdk-go/sdk/requests"
@@ -36,7 +37,12 @@ func (a *LBAdapter) createClient(region string) (*slb.Client, error) {
 	if region == "" {
 		region = a.defaultRegion
 	}
-	return slb.NewClientWithAccessKey(region, a.accessKeyID, a.accessKeySecret)
+	client, err := slb.NewClientWithAccessKey(region, a.accessKeyID, a.accessKeySecret)
+	if err != nil {
+		return nil, err
+	}
+	aliyunhttps.Force(client.GetConfig())
+	return client, nil
 }
 
 // ListInstances 获取负载均衡实例列表
@@ -461,7 +467,12 @@ func (a *LBAdapter) createCommonClient(region string) (*sdk.Client, error) {
 	if region == "" {
 		region = a.defaultRegion
 	}
-	return sdk.NewClientWithAccessKey(region, a.accessKeyID, a.accessKeySecret)
+	client, err := sdk.NewClientWithAccessKey(region, a.accessKeyID, a.accessKeySecret)
+	if err != nil {
+		return nil, err
+	}
+	aliyunhttps.Force(client.GetConfig())
+	return client, nil
 }
 
 // listALBInstances 获取ALB实例列表

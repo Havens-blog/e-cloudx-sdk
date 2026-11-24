@@ -9,6 +9,7 @@ import (
 	"time"
 
 	"github.com/Havens-blog/e-cloudx-sdk/billing"
+	aliyunhttps "github.com/Havens-blog/e-cloudx-sdk/common/aliyunhttps"
 	"github.com/Havens-blog/e-cloudx-sdk/common/retry"
 	"github.com/Havens-blog/e-cloudx-sdk/domain"
 	sdkerrors "github.com/aliyun/alibaba-cloud-sdk-go/sdk/errors"
@@ -45,6 +46,7 @@ func newAliyunBillingAdapter(account *domain.CloudAccount) (billing.BillingAdapt
 	if err != nil {
 		return nil, fmt.Errorf("failed to create aliyun bss client: %w", err)
 	}
+	aliyunhttps.Force(client.GetConfig())
 
 	return &AliyunBillingAdapter{
 		client:  client,
